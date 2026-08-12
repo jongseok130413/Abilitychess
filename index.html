@@ -473,7 +473,10 @@ function pseudo(r1,c1,r2,c2,b=board){
    if(dc===0&&!q){ if(dr===d)return true; if(r1===start&&dr===2*d&&!b[r1+d][c1])return true; }
    if(ac===1&&dr===d){
      if(q&&!same(pObj,qObj))return true;
-     if(enPassantTarget && enPassantTarget[0]===r2 && enPassantTarget[1]===c2) return true;
+     if(enPassantTarget && enPassantTarget[0]===r2 && enPassantTarget[1]===c2){
+       const capturedPawn = b[r1][c2];
+       if(capturedPawn && !same(pObj, capturedPawn)) return true;
+     }
    }
    return false;
  }
