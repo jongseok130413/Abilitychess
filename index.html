@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>ABILITY CHESS v1</title>
+<title>ABILITY CHESS v5.2 - 강하율(폰+폰 불가 패치)</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#0d1016;color:#f5f7fb;font-family:system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
@@ -1122,14 +1122,22 @@ function tryHostPeer(attemptsLeft) {
     conn = c;
     onlineRole = 'host';
     myColor = true; // 방장 = 백
-    setupConnection();
+    document.getElementById("hostStatus").textContent = "연결 중... 잠시만 기다려줘.";
+    if (conn.open) {
+      setupConnection();
+    } else {
+      conn.on('open', () => setupConnection());
+      conn.on('error', () => {
+        document.getElementById("hostStatus").textContent = "연결에 실패했어. 같은 와이파이에서 다시 시도해봐.";
+      });
+    }
   });
 
   peer.on('error', (err) => {
     if (err.type === 'unavailable-id' && attemptsLeft > 0) {
       tryHostPeer(attemptsLeft - 1);
     } else {
-      document.getElementById("hostStatus").textContent = "연결 오류가 발생했어요. 다시 시도해줘.";
+      document.getElementById("hostStatus").textContent = "연결 오류가 발생했어요 (" + err.type + "). 다시 시도해줘.";
     }
   });
 }
@@ -1155,20 +1163,30 @@ function attemptJoin() {
   if (peer) { try { peer.destroy(); } catch(e){} }
   peer = new Peer();
 
+  const joinTimeout = setTimeout(() => {
+    statusEl.textContent = "연결이 너무 오래 걸려. 네트워크(와이파이/데이터) 문제일 수 있어. 같은 와이파이로 다시 시도해봐.";
+  }, 10000);
+
   peer.on('open', () => {
     conn = peer.connect("abchess-" + code);
     conn.on('open', () => {
+      clearTimeout(joinTimeout);
       onlineRole = 'guest';
       myColor = false; // 참가자 = 흑
       setupConnection();
     });
+    conn.on('error', () => {
+      clearTimeout(joinTimeout);
+      statusEl.textContent = "연결에 실패했어. 코드를 확인하거나 같은 와이파이로 시도해봐.";
+    });
   });
 
   peer.on('error', (err) => {
+    clearTimeout(joinTimeout);
     if (err.type === 'peer-unavailable') {
       statusEl.textContent = "해당 코드의 방을 찾을 수 없어. 코드를 다시 확인해줘.";
     } else {
-      statusEl.textContent = "연결 오류가 발생했어. 다시 시도해줘.";
+      statusEl.textContent = "연결 오류가 발생했어 (" + err.type + "). 다시 시도해줘.";
     }
   });
 }
