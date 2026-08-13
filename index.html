@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ABILITY CHESS v6.0 - Online Multiplayer</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0d1016;color:#f5f7fb;font-family:system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+button, input{font:inherit}
+#setup{position:fixed;inset:0;background:#0d1016;display:flex;align-items:center;justify-content:center;padding:18px;z-index:10;overflow-y:auto}
+.panel{width:min(600px,100%);background:#151a23;border:1px solid #2b3443;border-radius:22px;padding:24px}
+.brand{text-align:center;font-weight:900;letter-spacing:3px;color:#aeb8c8;margin-bottom:24px}
+.step{display:none}.step.active{display:block}
+.side{text-align:center;font-size:30px;font-weight:900}
+.side.black{color:#ef5350}.side.white{color:#4f7cff}
+.desc{text-align:center;color:#98a3b5;margin:8px 0 18px}
+.choices{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.choice{min-height:76px;border:1px solid #3a4455;border-radius:14px;background:#202735;color:#fff;font-weight:800;cursor:pointer}
+.choice:disabled{opacity:.3;cursor:not-allowed;border-color:#2a313d;background:#151a23;color:#5a6578}
+.choice.blackSel{border:2px solid #ef5350}.choice.whiteSel{border:2px solid #4f7cff}
+.done{width:100%;margin-top:14px;padding:14px;border:0;border-radius:13px;background:#4f7cff;color:#fff;font-weight:900;cursor:pointer}
+.modeBtn, .diffBtn{width:100%;padding:12px;margin-bottom:8px;border:1px solid #3a4455;border-radius:13px;background:#202735;color:#fff;font-weight:900;cursor:pointer}
+.modeBtn.selected, .diffBtn.selected{border-color:#4f7cff;background:#334e9b}
+.onlineBox{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.onlineInput{padding:12px;border-radius:10px;border:1px solid #3a4455;background:#0d1016;color:#fff;text-align:center;font-weight:700}
+
+#loading{position:fixed;inset:0;background:#0d1016;display:none;z-index:20;align-items:center;justify-content:center;flex-direction:column}
+.spinner{width:44px;height:44px;border:4px solid #283142;border-top-color:#4f7cff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#game{display:none;min-height:100vh}
+header{height:64px;border-bottom:1px solid #252c38;display:flex;align-items:center;padding:0 18px}
+.logo{font-weight:900;letter-spacing:2px}
+main{width:min(760px,100%);margin:auto;padding:18px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.status{font-weight:900;font-size:18px}
+.ability{border:0;border-radius:13px;padding:12px 18px;background:#334e9b;color:#fff;font-weight:900;cursor:pointer}
+.ability.active{background:#ff9800;color:#000;animation:pulse 1s infinite}
+.ability:disabled{opacity:.4;cursor:not-allowed}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+.board{width:min(94vw,680px);height:min(94vw,680px);margin:auto;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border-radius:12px;overflow:hidden}
+.cell{position:relative;border:0;padding:0;display:grid;place-items:center;cursor:pointer}
+.light{background:#eeeed2}.dark{background:#769656}
+.cell.move::after{content:"";width:14px;height:14px;background:#000;opacity:.75;border-radius:50%;position:absolute;z-index:2}
+.cell.selected{box-shadow:inset 0 0 0 5px #4f7cff}
+
+.cell.bombTarget{box-shadow:inset 0 0 0 5px #ef5350;background:#ffcdd2 !important}
+.cell.teleportSource{box-shadow:inset 0 0 0 5px #9c27b0;background:#e1bee7 !important}
+.cell.teleportTarget{box-shadow:inset 0 0 0 5px #00bcd4;background:#b2ebf2 !important}
+.cell.reviveTarget{box-shadow:inset 0 0 0 5px #4caf50;background:#c8e6c9 !important}
+.cell.fusePawn{box-shadow:inset 0 0 0 5px #9c27b0;background:#e1bee7 !important}
+.cell.fuseTarget{box-shadow:inset 0 0 0 5px #ff9800;background:#ffe0b2 !important}
+
+.piece{font-size:clamp(34px,10vw,64px);line-height:1;user-select:none;z-index:1;position:relative}
+.whitePiece{color:#f8fbff;text-shadow:2px 2px 0 #1677ff,-2px 2px 0 #1677ff,2px -2px 0 #1677ff,-2px -2px 0 #1677ff}
+.blackPiece{color:#101114;text-shadow:2px 2px 0 #e53935,-2px 2px 0 #e53935,2px -2px 0 #e53935,-2px -2px 0 #e53935}
+
+.amazonContainer{position:relative;display:inline-block;line-height:1}
+.amazonCrown{position:absolute;top:-25%;left:50%;transform:translateX(-50%);font-size:0.55em;pointer-events:none}
+
+.marker{position:absolute;inset:4px;border:4px solid #00d2ff;box-shadow:inset 0 0 12px #00d2ff, 0 0 12px #00d2ff;border-radius:10px;pointer-events:none;z-index:3}
+.marker.disarm{border-color:#ef5350;box-shadow:inset 0 0 12px #ef5350, 0 0 12px #ef5350}
+.info{text-align:center;color:#8f9bad;font-size:13px;margin-top:13px;min-height:40px}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:30}
+.modalBox{background:#151a23;border:2px solid #4f7cff;border-radius:18px;padding:20px;text-align:center;max-width:90vw}
+.modalTitle{font-size:20px;font-weight:900;margin-bottom:14px;color:#fff}
+.modalChoices{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.modalBtn{font-size:48px;width:70px;height:70px;border-radius:12px;border:1px solid #3a4455;background:#202735;cursor:pointer;display:grid;place-items:center}
+.modalBtn:hover{background:#334e9b;border-color:#4f7cff}
+</style>
+</head>
+<body>
+
+<div id="setup">
+  <div class="panel">
+    <div class="brand">ABILITY CHESS v6.0</div>
+    <div id="modeStep" class="step active">
+      <div class="side white">GAME MODE</div>
+      <div class="desc">대전 모드를 선택하라</div>
+      <button class="modeBtn selected" onclick="setGameMode('local', this)">2인 오프라인 대전</button>
+      <button class="modeBtn" onclick="setGameMode('ai', this)">AI 대전 (Stockfish)</button>
+      <button class="modeBtn" onclick="setGameMode('online', this)">온라인 멀티플레이어</button>
+      <button class="done" onclick="onModeNext()">다음</button>
+    </div>
+
+    <div id="onlineStep" class="step">
+      <div class="side white">ONLINE MATCH</div>
+      <div class="desc">방을 생성하거나 참가하라</div>
+      <div class="onlineBox">
+        <button class="modeBtn" onclick="createOnlineRoom()">방 생성 (Host)</button>
+        <div id="hostCodeDisplay" style="text-align:center;font-weight:800;color:#00d2ff;"></div>
+        <hr style="border-color:#2a313d;width:100%">
+        <input type="text" id="joinCodeInput" class="onlineInput" placeholder="방 코드 6자리 입력">
+        <button class="modeBtn" onclick="joinOnlineRoom()">방 참가 (Join)</button>
+      </div>
+    </div>
+
+    <div id="diffStep" class="step">
+      <div class="side white">STOCKFISH LEVEL</div>
+      <div class="desc">스톡피쉬 난이도 설정</div>
+      <button class="diffBtn" onclick="setDifficulty(2, this)">쉬움 (Depth 2)</button>
+      <button class="diffBtn" onclick="setDifficulty(6, this)">보통 (Depth 6)</button>
+      <button class="diffBtn selected" onclick="setDifficulty(12, this)">지옥 (Stockfish Depth 12)</button>
+      <button class="done" onclick="nextStep('diffStep','blackStep')">다음</button>
+    </div>
+
+    <div id="blackStep" class="step">
+      <div class="side black">BLACK · 흑 <span id="blackLabel"></span></div>
+      <div class="desc">흑의 캐릭터 선택</div>
+      <div class="choices">
+        <button class="choice" data-side="black" data-char="doyoon">강도윤<br>질풍</button>
+        <button class="choice" data-side="black" data-char="hanna">김한나<br>무장해제</button>
+        <button class="choice" data-side="black" data-char="hajun">최하준<br>수호</button>
+        <button class="choice" data-side="black" data-char="seojun">윤서준<br>폭발(3x3)</button>
+        <button class="choice" data-side="black" data-char="gangjun">배강준<br>아마존(패시브)</button>
+        <button class="choice" data-side="black" data-char="seongjin">임성진<br>공간이동</button>
+        <button class="choice" data-side="black" data-char="uiji">한의지<br>부활(퀸 제외)</button>
+        <button class="choice" data-side="black" data-char="hayul">강하율<br>확률합체(노쿨)</button>
+        <button class="choice" data-side="black" data-char="aely">김앨리<br>로마기사병(노턴소모)</button>
+      </div>
+      <button class="done" onclick="goToWhiteStep()">선택 완료</button>
+    </div>
+
+    <div id="whiteStep" class="step">
+      <div class="side white">WHITE · 백</div>
+      <div class="desc">백의 캐릭터 선택</div>
+      <div class="choices">
+        <button class="choice" data-side="white" data-char="doyoon">강도윤<br>질풍</button>
+        <button class="choice" data-side="white" data-char="hanna">김한나<br>무장해제</button>
+        <button class="choice" data-side="white" data-char="hajun">최하준<br>수호</button>
+        <button class="choice" data-side="white" data-char="seojun">윤서준<br>폭발(3x3)</button>
+        <button class="choice" data-side="white" data-char="gangjun">배강준<br>아마존(패시브)</button>
+        <button class="choice" data-side="white" data-char="seongjin">임성진<br>공간이동</button>
+        <button class="choice" data-side="white" data-char="uiji">한의지<br>부활(퀸 제외)</button>
+        <button class="choice" data-side="white" data-char="hayul">강하율<br>확률합체(노쿨)</button>
+        <button class="choice" data-side="white" data-char="aely">김앨리<br>로마기사병(노턴소모)</button>
+      </div>
+      <button class="done" onclick="finishSetup()">게임 시작</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div id="loadingText" style="margin-top:16px;font-weight:900">LOADING...</div>
+</div>
+
+<div id="promotionModal" class="modal">
+  <div class="modalBox">
+    <div class="modalTitle">프로모션 기물 선택</div>
+    <div id="promoChoices" class="modalChoices"></div>
+  </div>
+</div>
+
+<div id="reviveModal" class="modal">
+  <div class="modalBox">
+    <div class="modalTitle">부활시킬 기물을 선택하라 (퀸 제외)</div>
+    <div id="reviveChoices" class="modalChoices"></div>
+  </div>
+</div>
+
+<div id="game">
+  <header><div class="logo">ABILITY CHESS v6.0</div></header>
+  <main>
+    <div class="top">
+      <div id="status" class="status">백의 차례</div>
+      <button id="ability" class="ability" disabled>능력</button>
+    </div>
+    <div id="board" class="board"></div>
+    <div id="info" class="info"></div>
+  </main>
+</div>
+
+<script>
+const sounds = {
+  move: new Audio("https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3"),
+  capture: new Audio("https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3"),
+  check: new Audio("https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3"),
+  castle: new Audio("https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/castle.mp3"),
+  gameEnd: new Audio("https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3"),
+  ability: new Audio("https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/notify.mp3")
+};
+
+let audioUnlocked = false;
+function unlockAudio() {
+  if (audioUnlocked) return;
+  Object.values(sounds).forEach(a => { a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {}); });
+  audioUnlocked = true;
+}
+window.addEventListener('click', unlockAudio, { once: true });
+window.addEventListener('touchstart', unlockAudio, { once: true });
+
+function playSound(name) {
+  if (sounds[name]) { sounds[name].currentTime = 0; sounds[name].play().catch(() => {}); }
+}
+
+let peer = null, conn = null, myOnlineRole = null; 
+let gameMode = 'local';
+
+function setGameMode(m, btn) {
+  gameMode = m;
+  document.querySelectorAll(".modeBtn").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+}
+
+function onModeNext() {
+  if (gameMode === 'ai') nextStep('modeStep', 'diffStep');
+  else if (gameMode === 'online') nextStep('modeStep', 'onlineStep');
+  else nextStep('modeStep', 'blackStep');
+}
+
+function createOnlineRoom() {
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  peer = new Peer('ability-chess-' + code);
+  myOnlineRole = 'white';
+  
+  peer.on('open', (id) => {
+    document.getElementById('hostCodeDisplay').textContent = "방 코드: " + code + " (상대방 접속 대기 중...)";
+  });
+  
+  peer.on('connection', (c) => {
+    conn = c;
+    setupConnection();
+    nextStep('onlineStep', 'blackStep');
+  });
+
+  peer.on('error', (err) => { alert('방 생성 실패! 다시 시도하라.'); });
+}
+
+function joinOnlineRoom() {
+  const code = document.getElementById('joinCodeInput').value.trim();
+  if(!code) return alert("방 코드를 입력하라!");
+  
+  peer = new Peer();
+  myOnlineRole = 'black';
+
+  peer.on('open', () => {
+    conn = peer.connect('ability-chess-' + code);
+    setupConnection();
+  });
+}
+
+function setupConnection() {
+  conn.on('open', () => {
+    if(myOnlineRole === 'black') {
+      nextStep('onlineStep', 'blackStep');
+    }
+  });
+
+  conn.on('data', (data) => {
+    handleOnlineData(data);
+  });
+}
+
+function sendOnlineData(data) {
+  if(conn && conn.open) conn.send(data);
+}
+
+function handleOnlineData(data) {
+  if(data.type === 'SYNC_STATE') {
+    board = data.board;
+    whiteTurn = data.whiteTurn;
+    turn = data.turn;
+    whiteCharge = data.whiteCharge;
+    blackCharge = data.blackCharge;
+    uijiUsed = data.uijiUsed;
+    aelyUsed = data.aelyUsed;
+    deadPieces = data.deadPieces;
+    render();
+  } else if(data.type === 'SETUP_CHOICE') {
+    if(data.bc) bc = data.bc;
+    if(data.wc) wc = data.wc;
+  } else if(data.type === 'START_GAME') {
+    finishSetup(true);
+  }
+}
+
+let stockfishWorker = null, engineReady = false, stockfishDepth = 12;
+function initStockfish() {
+  fetch('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js')
+    .then(res => res.text())
+    .then(code => {
+      const blob = new Blob([code], { type: 'application/javascript' });
+      stockfishWorker = new Worker(URL.createObjectURL(blob));
+      stockfishWorker.onmessage = function(e) {
+        if (e.data === 'uciok') engineReady = true;
+        else if (e.data.startsWith('bestmove')) {
+          const parts = e.data.split(' ');
+          if (parts[1] && parts[1] !== '(none)') executeStockfishMove(parts[1]);
+        }
+      };
+      stockfishWorker.postMessage('uci');
+      stockfishWorker.postMessage('isready');
+    });
+}
+
+function boardToFEN() {
+  let fen = "";
+  for (let r = 0; r < 8; r++) {
+    let empty = 0;
+    for (let c = 0; c < 8; c++) {
+      const cell = board[r][c];
+      const p = cell ? cell.type : "";
+      if (!p) empty++;
+      else {
+        if (empty > 0) { fen += empty; empty = 0; }
+        const map = {"♙":"P","⚔":"P","♘":"N","♗":"B","♖":"R","♕":"Q","Ⓐ":"Q","♔":"K","♟":"p","⚔️":"p","♞":"n","♝":"b","♜":"r","♛":"q","ⓐ":"q","♚":"k"};
+        fen += map[p] || "";
+      }
+    }
+    if (empty > 0) fen += empty;
+    if (r < 7) fen += "/";
+  }
+  return fen + " " + (whiteTurn ? "w" : "b") + " - - 0 " + turn;
+}
+
+function requestStockfishMove() {
+  if (!stockfishWorker || !engineReady || whiteTurn || pendingPromotion) return;
+  stockfishWorker.postMessage('position fen ' + boardToFEN());
+  stockfishWorker.postMessage('go depth ' + stockfishDepth);
+}
+
+function executeStockfishMove(moveStr) {
+  if(whiteTurn || pendingPromotion) return;
+  const cols = "abcdefgh";
+  const c1 = cols.indexOf(moveStr[0]), r1 = 8 - parseInt(moveStr[1]);
+  const c2 = cols.indexOf(moveStr[2]), r2 = 8 - parseInt(moveStr[3]);
+  const promoChar = moveStr[4];
+  if (inside(r1, c1) && inside(r2, c2)) move(r1, c1, r2, c2, promoChar);
+}
+
+const chars={
+ doyoon:{name:"강도윤",ability:"질풍",cd:5,desc:"추가 이동 가능 (2번째 이동 시 잡기 불가)"},
+ hanna:{name:"김한나",ability:"무장해제",cd:9,desc:"상대가 방금 움직인 기물을 1턴 동안 불능으로 만든다"},
+ hajun:{name:"최하준",ability:"수호",cd:5,desc:"랜덤으로 3개의 기물을 보호(1턴 동안 잡기 불가)"},
+ seojun:{name:"윤서준",ability:"폭발",cd:8,desc:"선택한 내 기물(폰 제외) 중심 3x3 범위를 초토화시킨다"},
+ gangjun:{name:"배강준",ability:"아마존(패시브)",cd:6,desc:"[패시브] 퀸과 나이트 2개를 바쳐 아마존 소환"},
+ seongjin:{name:"임성진",ability:"공간이동",cd:6,desc:"기물 하나를 내 진영 빈 공간으로 이동시킨다"},
+ uiji:{name:"한의지",ability:"부활",cd:10,desc:"죽은 기물 부활 (퀸 제외, 판당 1회)"},
+ hayul:{name:"강하율",ability:"확률합체",cd:0,desc:"폰+내기물 합체!"},
+ aely:{name:"김앨리",ability:"로마기사병",cd:0,desc:"[판당 1회 / 노턴소모] 폰 1개 로마기사병 변신 & 전방 처단!"}
+};
+
+let whiteChar="doyoon",blackChar="hanna";
+let board=[],whiteTurn=true,turn=1,selected=null;
+let whiteCharge=0,blackCharge=0,extraMove=false,lastMoved=null,lastMovedWasKing=false;
+let disarmedPiece=null,disarmedUntil=0;
+let protectedPieces=[],protectedUntil=0;
+let enPassantTarget=null, bombMode=false, teleportMode=false, teleportSource=null;
+let movedKing={white:false, black:false}, movedRook={whiteA:false, whiteH:false, blackA:false, blackH:false};
+
+let fuseMode = false, fusePawnPos = null;
+let deadPieces = { white: [], black: [] };
+let uijiUsed = { white: false, black: false }, aelyUsed = { white: false, black: false };
+let reviveMode = false, reviveType = null, pendingPromotion = null;
+
+const W=["♖","♘","♗","♕","♔","♗","♘","♖"], B=["♜","♞","♝","♛","♚","♝","♞","♜"];
+let pieceIdCounter = 1;
+function createPiece(type) { return type ? { type: type, id: pieceIdCounter++ } : null; }
+
+function initial(){
+ const b=Array.from({length:8},()=>Array(8).fill(null));
+ for(let i=0;i<8;i++) {
+   b[0][i] = createPiece(B[i]); b[1][i] = createPiece("♟");
+   b[6][i] = createPiece("♙"); b[7][i] = createPiece(W[i]);
+ }
+ if(whiteChar === "gangjun"){ b[7][3] = createPiece("Ⓐ"); b[7][1] = null; b[7][6] = null; }
+ if(blackChar === "gangjun"){ b[0][3] = createPiece("ⓐ"); b[0][1] = null; b[0][6] = null; }
+ return b;
+}
+
+function white(p){return p && "♙⚔♘♗♖♕♔Ⓐ".includes(p.type)}
+function same(a,b){return a&&b&&white(a)===white(b)}
+function inside(r,c){return r>=0&&r<8&&c>=0&&c<8}
+function clone(b){return b.map(r=>[...r])}
+
+function kingPos(b,w){
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++) if(b[r][c] && b[r][c].type===(w?"♔":"♚"))return [r,c];
+ return null;
+}
+
+function attacked(b,r,c,byWhite){
+ for(let r1=0;r1<8;r1++)for(let c1=0;c1<8;c1++){
+   const pObj=b[r1][c1]; if(!pObj||white(pObj)!==byWhite)continue;
+   const p=pObj.type; const dr=r-r1,dc=c-c1,ar=Math.abs(dr),ac=Math.abs(dc);
+   if(p==="♙"||p==="♟"){ if(dr===(byWhite?-1:1)&&ac===1)return true; }
+   else if(p==="⚔"||p==="⚔️"){ if(dr===(byWhite?-1:1)&&dc===0)return true; }
+   else if(p==="♘"||p==="♞"){ if((ar===2&&ac===1)||(ar===1&&ac===2))return true; }
+   else if(p==="♔"||p==="♚"){ if(ar<=1&&ac<=1&&ar+ac>0)return true; }
+   else if(p==="Ⓐ"||p==="ⓐ"){
+     if((ar===2&&ac===1)||(ar===1&&ac===2))return true;
+     const diag=ar===ac, line=(dr===0||dc===0);
+     if(diag||line){
+       const sr=Math.sign(dr),sc=Math.sign(dc); let rr=r1+sr,cc=c1+sc,clear=true;
+       while(rr!==r||cc!==c){if(b[rr][cc]){clear=false;break}rr+=sr;cc+=sc}
+       if(clear)return true;
+     }
+   } else {
+     const diag=(p==="♗"||p==="♝"||p==="♕"||p==="♛")&&ar===ac;
+     const line=(p==="♖"||p==="♜"||p==="♕"||p==="♛")&&(dr===0||dc===0);
+     if(diag||line){
+       const sr=Math.sign(dr),sc=Math.sign(dc); let rr=r1+sr,cc=c1+sc,clear=true;
+       while(rr!==r||cc!==c){if(b[rr][cc]){clear=false;break}rr+=sr;cc+=sc}
+       if(clear)return true;
+     }
+   }
+ }
+ return false;
+}
+
+function inCheck(w,b=board){ const k=kingPos(b,w); return k?attacked(b,k[0],k[1],!w):true; }
+
+function pseudo(r1,c1,r2,c2,b=board){
+ const pObj=b[r1][c1],qObj=b[r2][c2]; if(!pObj||!inside(r2,c2)||same(pObj,qObj))return false;
+ const p=pObj.type, q=qObj?qObj.type:"";
+ const dr=r2-r1,dc=c2-c1,ar=Math.abs(dr),ac=Math.abs(dc),w=white(pObj);
+ const clear=()=>{
+   const sr=Math.sign(dr),sc=Math.sign(dc);let r=r1+sr,c=c1+sc;
+   while(r!==r2||c!==c2){if(b[r][c])return false;r+=sr;c+=sc}return true;
+ };
+ 
+ if(p==="⚔"||p==="⚔️"){ return dc===0 && dr===(w?-1:1); }
+ if(p==="♙"||p==="♟"){
+   const d=w?-1:1,start=w?6:1;
+   if(dc===0&&!q){ if(dr===d)return true; if(r1===start&&dr===2*d&&!b[r1+d][c1])return true; }
+   if(ac===1&&dr===d){
+     if(q&&!same(pObj,qObj))return true;
+     if(enPassantTarget && enPassantTarget[0]===r2 && enPassantTarget[1]===c2) return true;
+   }
+   return false;
+ }
+ if(p==="♘"||p==="♞")return (ar===2&&ac===1)||(ar===1&&ac===2);
+ if(p==="♔"||p==="♚"){
+   if(ar<=1&&ac<=1&&ar+ac>0)return true;
+   if(r1===(w?7:0) && c1===4 && r2===r1){
+     if(inCheck(w,b)) return false;
+     if(c2===6 && !(w?movedKing.white:movedKing.black) && !(w?movedRook.whiteH:movedRook.blackH)){
+       if(!b[r1][5] && !b[r1][6] && !attacked(b,r1,5,!w) && !attacked(b,r1,6,!w)) return true;
+     }
+     if(c2===2 && !(w?movedKing.white:movedKing.black) && !(w?movedRook.whiteA:movedRook.blackA)){
+       if(!b[r1][1] && !b[r1][2] && !b[r1][3] && !attacked(b,r1,2,!w) && !attacked(b,r1,3,!w)) return true;
+     }
+   }
+   return false;
+ }
+ if(p==="♗"||p==="♝")return ar===ac&&clear();
+ if(p==="♖"||p==="♜")return (dr===0||dc===0)&&clear();
+ if(p==="♕"||p==="♛")return ((dr===0||dc===0)||ar===ac)&&clear();
+ if(p==="Ⓐ"||p==="ⓐ")return ((dr===0||dc===0)||ar===ac)?clear():((ar===2&&ac===1)||(ar===1&&ac===2));
+ return false;
+}
+
+function legal(r1,c1,r2,c2){
+ const pObj=board[r1][c1]; let targetObj=board[r2][c2];
+ if(!pObj||white(pObj)!==whiteTurn)return false;
+ 
+ const isEnPassant = (["♙","♟"].includes(pObj.type)) && Math.abs(c2-c1)===1 && !targetObj && enPassantTarget && enPassantTarget[0]===r2 && enPassantTarget[1]===c2;
+ if(isEnPassant) targetObj = board[r1][c2];
+
+ if(disarmedPiece && disarmedUntil>=turn && pObj.id === disarmedPiece.id) return false;
+ if(protectedPieces.length > 0 && protectedUntil>=turn && targetObj && protectedPieces.some(p => p.id === targetObj.id)) return false;
+ if(extraMove && targetObj) return false;
+
+ if(!pseudo(r1,c1,r2,c2))return false;
+ const b=clone(board); b[r2][c2]=pObj; b[r1][c1]=null;
+ if(isEnPassant) b[r1][c2]=null;
+
+ return !inCheck(whiteTurn,b);
+}
+
+function anyLegal(w){
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(board[r][c]&&white(board[r][c])===w)
+  for(let rr=0;rr<8;rr++)for(let cc=0;cc<8;cc++)if(legalFor(w,r,c,rr,cc))return true;
+ return false;
+}
+
+function legalFor(w,r1,c1,r2,c2){ const old=whiteTurn;whiteTurn=w;const x=legal(r1,c1,r2,c2);whiteTurn=old;return x; }
+function isMyTerritory(r, w) { return w ? (r >= 4) : (r <= 3); }
+
+function render(){
+ const el=document.getElementById("board");el.innerHTML="";
+ const chk=inCheck(whiteTurn), mate=chk&&!anyLegal(whiteTurn);
+
+ const isMyTurn = (gameMode !== 'online') || (myOnlineRole === (whiteTurn ? 'white' : 'black'));
+
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+   const cell=document.createElement("button");
+   cell.className="cell "+(((r+c)%2)?"dark":"light");
+   if(selected&&selected[0]===r&&selected[1]===c)cell.classList.add("selected");
+   if(!mate&&selected&&legal(selected[0],selected[1],r,c))cell.classList.add("move");
+
+   cell.onclick=()=> { if(isMyTurn) tap(r,c); };
+   const pObj=board[r][c];
+   if(pObj){
+     const sp=document.createElement("span");
+     sp.className="piece "+(white(pObj)?"whitePiece":"blackPiece");
+     if(pObj.type === "Ⓐ") sp.innerHTML = `<span class="amazonContainer"><span class="amazonCrown">♕</span>♘</span>`;
+     else if(pObj.type === "ⓐ") sp.innerHTML = `<span class="amazonContainer"><span class="amazonCrown">♛</span>♞</span>`;
+     else sp.textContent = pObj.type;
+     cell.appendChild(sp);
+   }
+   el.appendChild(cell);
+ }
+
+ const abBtn = document.getElementById("ability");
+ if(mate) document.getElementById("status").textContent = whiteTurn ? "체크메이트! 백 패배!" : "체크메이트! 흑 패배!";
+ else if(chk) document.getElementById("status").textContent = `${whiteTurn ? "백" : "흑"} 체크!`;
+ else document.getElementById("status").textContent = `${whiteTurn ? "백" : "흑"}의 차례`;
+
+ const curCharKey=whiteTurn?whiteChar:blackChar;
+ const curChar=chars[curCharKey];
+ const curCharge=whiteTurn?whiteCharge:blackCharge;
+ const used = whiteTurn ? (curCharKey==="uiji"?uijiUsed.white:aelyUsed.white) : (curCharKey==="uiji"?uijiUsed.black:aelyUsed.black);
+ let ready = (curCharKey === "gangjun" || curCharKey === "hayul") ? true : curCharge >= curChar.cd;
+ if ((curCharKey === "uiji" || curCharKey === "aely") && used) ready = false;
+
+ abBtn.textContent=curChar.ability;
+ abBtn.disabled=!ready || mate || !isMyTurn;
+
+ document.getElementById("info").textContent=`${turn}수 · ${curChar.name} · ${curChar.desc}`;
+
+ if(gameMode === 'online') {
+   sendOnlineData({
+     type: 'SYNC_STATE',
+     board, whiteTurn, turn, whiteCharge, blackCharge, uijiUsed, aelyUsed, deadPieces
+   });
+ }
+
+ if(gameMode === 'ai' && !whiteTurn && !mate && !pendingPromotion) setTimeout(requestStockfishMove, 300);
+}
+
+function tap(r,c){
+ if(selected){
+   if(legal(selected[0],selected[1],r,c)){move(selected[0],selected[1],r,c);return}
+   selected=null;
+ }
+ if(board[r][c]&&white(board[r][c])===whiteTurn)selected=[r,c];
+ render();
+}
+
+function move(r1, c1, r2, c2, stockfishPromoChoice = null) {
+ const pObj = board[r1][c1]; let p = pObj.type;
+ let targetObj = board[r2][c2]; let isCapture = !!targetObj;
+
+ if(targetObj){
+   if(white(targetObj)) deadPieces.white.push(targetObj.type);
+   else deadPieces.black.push(targetObj.type);
+ }
+
+ if(p === "⚔" && r2 === 1) { pObj.type = "♘"; alert("⚔️ 로마기사병이 나이트(♘)로 승급했습니다!"); }
+ else if(p === "⚔️" && r2 === 6) { pObj.type = "♞"; alert("⚔️ 로마기사병이 나이트(♞)로 승급했습니다!"); }
+
+ board[r2][c2] = pObj; board[r1][c1] = null;
+ selected = null;
+
+ if(whiteTurn){ if(whiteCharge < chars[whiteChar].cd) whiteCharge++; }
+ else { if(blackCharge < chars[blackChar].cd) blackCharge++; }
+
+ handleTurnEnd();
+}
+
+function handleTurnEnd() {
+  whiteTurn = !whiteTurn;
+  turn++;
+  render();
+}
+
+/* 🔥 김앨리 능력: 턴 소모 완전 제거 패치 🔥 */
+function triggerAbility(){
+ const curCharKey=whiteTurn?whiteChar:blackChar;
+
+ if(curCharKey==="aely"){
+   const myPawns = [];
+   const pawnType = whiteTurn ? "♙" : "♟";
+   for(let r=0; r<8; r++){
+     for(let c=0; c<8; c++){
+       if(board[r][c] && board[r][c].type === pawnType) myPawns.push([r, c]);
+     }
+   }
+   if(myPawns.length === 0){
+     alert("변신시킬 내 폰이 없습니다!");
+     return;
+   }
+   
+   const pick = myPawns[Math.floor(Math.random() * myPawns.length)];
+   const pr = pick[0], pc = pick[1];
+   board[pr][pc].type = whiteTurn ? "⚔" : "⚔️";
+
+   const forwardR = whiteTurn ? pr - 1 : pr + 1;
+   let killMsg = "";
+   if(inside(forwardR, pc) && board[forwardR][pc] && white(board[forwardR][pc]) !== whiteTurn){
+     const deadObj = board[forwardR][pc];
+     if(white(deadObj)) deadPieces.white.push(deadObj.type);
+     else deadPieces.black.push(deadObj.type);
+     
+     killMsg = ` 전방 적 기물(${deadObj.type}) 처단!`;
+     board[forwardR][pc] = null;
+     playSound("capture");
+   } else {
+     playSound("ability");
+   }
+
+   if(whiteTurn) aelyUsed.white = true; else aelyUsed.black = true;
+   alert(`⚔️ 로마기사병 출격! (턴 소모 없음! 계속 행동하라!)${killMsg}`);
+   
+   // 🔥 핵심: handleTurnEnd()를 호출하지 않고 그대로 내 턴 유지! 🔥
+   render();
+ }
+}
+
+document.getElementById("ability").onclick=()=> triggerAbility();
+
+function setDifficulty(depth, btn) {
+  stockfishDepth = depth;
+  document.querySelectorAll(".diffBtn").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+}
+
+function goToWhiteStep() {
+  const allChars = ["doyoon", "hanna", "hajun", "seojun", "gangjun", "seongjin", "uiji", "hayul", "aely"];
+  wc = allChars.filter(ch => ch !== bc)[0];
+  nextStep('blackStep', 'whiteStep');
+}
+
+function finishSetup(isRemote = false) {
+  whiteChar = wc; blackChar = bc;
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("loading").style.display = "flex";
+  if (gameMode === 'ai') initStockfish();
+  setTimeout(() => {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("game").style.display = "block";
+    board = initial(); whiteTurn = true; turn = 1; selected = null;
+    render();
+  }, 800);
+}
+
+function mark(side,ch){
+ document.querySelectorAll(`.choice[data-side="${side}"]`).forEach(b=>{
+   b.classList.remove("blackSel","whiteSel");
+   if(b.dataset.char===ch)b.classList.add(side==="black"?"blackSel":"whiteSel");
+ });
+}
+
+function choose(side,ch){
+ if(side==="black") bc=ch; else wc=ch;
+ mark(side,ch);
+}
+
+document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>choose(b.dataset.side,b.dataset.char));
+choose("black","hanna");
+</script>
+</body>
+</html>
