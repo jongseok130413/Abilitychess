@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>ABILITY CHESS v5.3 - 무승부 시스템 완비</title>
+<title>ABILITY CHESS v5.4 - 슈뢰딩거의 기물 추가판</title>
 <style>
 :root{--white-outline:#1677ff;--black-outline:#e53935}
 *{box-sizing:border-box}
@@ -65,7 +65,7 @@ button{font:inherit}
 @keyframes barPulse{0%,100%{transform:scaleY(0.25)}50%{transform:scaleY(1)}}
 .loadProgress{height:3px;background:#3a2f5c;border-radius:2px;overflow:hidden}
 .loadProgress .fill{height:100%;background:linear-gradient(90deg,#9b7bff,#c9b6ff);width:0%}
-.loadTimes{display:flex;justify-content:space-between;font-size:11px;color:#7a6ba0;letter-spacing:1px}
+.loadTimes{display:flex;justify-space-between;font-size:11px;color:#7a6ba0;letter-spacing:1px}
 .loadRight{flex:1;position:relative;overflow:hidden;background-size:cover;background-position:center}
 .loadRight::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg, rgba(10,7,20,0.55), transparent 25%)}
 .spotPiece{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);font-size:clamp(40px,7vw,72px);color:#fdf8ff;text-shadow:0 0 18px #fff,0 0 40px #d9c9ff,0 0 80px #9b7bff;transition:opacity .25s ease;z-index:2}
@@ -83,7 +83,7 @@ header{height:64px;border-bottom:1px solid #252c38;display:flex;align-items:cent
 .colorRow input[type=color]{width:100%;height:42px;border:1px solid #3a4455;border-radius:10px;cursor:pointer;background:#151a23}
 .logo{font-weight:900;letter-spacing:2px}
 main{width:min(760px,100%);margin:auto;padding:18px}
-.top{display:flex;justify-space-between;align-items:center;margin-bottom:14px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .status{font-weight:900;font-size:18px}
 .ability{border:0;border-radius:13px;padding:12px 18px;background:#334e9b;color:#fff;font-weight:900;cursor:pointer}
 .ability.active{background:#ff9800;color:#000;animation:pulse 1s infinite}
@@ -107,6 +107,7 @@ main{width:min(760px,100%);margin:auto;padding:18px}
 .cell.teleportSource{box-shadow:inset 0 0 0 5px #9c27b0}
 .cell.teleportTarget{box-shadow:inset 0 0 0 5px #e040fb;background:#ea80fc !important}
 .cell.reviveTarget{box-shadow:inset 0 0 0 5px #4caf50;background:#c8e6c9 !important}
+.cell.gaeunTarget{box-shadow:inset 0 0 0 5px #00bcd4;background:#b2ebf2 !important}
 
 .piece{font-size:clamp(34px,10vw,64px);line-height:1;user-select:none;z-index:1;position:relative}
 .whitePiece{color:#f8fbff;text-shadow:2px 2px 0 var(--white-outline,#1677ff),-2px 2px 0 var(--white-outline,#1677ff),2px -2px 0 var(--white-outline,#1677ff),-2px -2px 0 var(--white-outline,#1677ff)}
@@ -118,6 +119,7 @@ main{width:min(760px,100%);margin:auto;padding:18px}
 .marker{position:absolute;inset:4px;border:4px solid #00d2ff;box-shadow:inset 0 0 12px #00d2ff, 0 0 12px #00d2ff;border-radius:10px;pointer-events:none;z-index:3}
 .marker.disarm{border-color:#ef5350;box-shadow:inset 0 0 12px #ef5350, 0 0 12px #ef5350}
 .marker.evo{border-color:#ffd700;box-shadow:inset 0 0 12px #ffd700, 0 0 12px #ffd700}
+.marker.schrodinger{border-color:#00bcd4;box-shadow:inset 0 0 12px #00bcd4, 0 0 12px #00bcd4;animation:pulse 1s infinite}
 .hexShield{position:absolute;inset:-15%;width:130%;height:130%;pointer-events:none;z-index:4;filter:drop-shadow(0 0 4px #00d2ff)}
 .info{text-align:center;color:#8f9bad;font-size:13px;margin-top:13px;min-height:40px}
 
@@ -127,6 +129,8 @@ main{width:min(760px,100%);margin:auto;padding:18px}
 .modalChoices{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .modalBtn{font-size:48px;width:70px;height:70px;border-radius:12px;border:1px solid #3a4455;background:#202735;cursor:pointer;display:grid;place-items:center}
 .modalBtn:hover{background:#334e9b;border-color:#4f7cff}
+.modalActionBtn{padding:12px 24px;margin:8px;border-radius:12px;border:1px solid #3a4455;background:#202735;color:#fff;font-weight:900;font-size:16px;cursor:pointer}
+.modalActionBtn:hover{background:#334e9b;border-color:#4f7cff}
 </style>
 </head>
 <body>
@@ -280,6 +284,17 @@ main{width:min(760px,100%);margin:auto;padding:18px}
   </div>
 </div>
 
+<div id="gaeunGuessModal" class="modal">
+  <div class="modalBox">
+    <div class="modalTitle">🔮 슈뢰딩거의 관측</div>
+    <div style="color:#aaa;margin-bottom:12px;font-size:14px">상대방이 지정한 기물은 생존했을까요, 사망했을까요?</div>
+    <div id="gaeunGuessChoices">
+      <button class="modalActionBtn" onclick="resolveGaeunGuess(true)">생존 (Alive)</button>
+      <button class="modalActionBtn" onclick="resolveGaeunGuess(false)">사망 (Dead)</button>
+    </div>
+  </div>
+</div>
+
 <div id="settingsModal" class="modal">
   <div class="modalBox" style="max-width:320px;width:90vw;text-align:left">
     <div class="modalTitle" style="text-align:center">⚙ 설정</div>
@@ -327,7 +342,6 @@ const sounds = {
   ability: new Audio("https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/notify.mp3")
 };
 
-// 📌 대기/타이틀/설정 화면용 배경음악 (조용하게, 루프)
 const bgMusic = new Audio("bgm.mp3");
 bgMusic.loop = true;
 bgMusic.volume = 0.15;
@@ -344,7 +358,6 @@ function unlockAudio() {
 window.addEventListener('click', unlockAudio, { once: true });
 window.addEventListener('touchstart', unlockAudio, { once: true });
 
-// 📌 첫 시도에서 재생이 막혔을 경우를 대비해, 이후 어떤 탭이든 계속 재시도
 function tryResumeBgMusic() {
   if (soundEnabled && isWaitingScreenActive() && bgMusic.paused) {
     bgMusic.play().catch(() => {});
@@ -353,8 +366,6 @@ function tryResumeBgMusic() {
 window.addEventListener('click', tryResumeBgMusic);
 window.addEventListener('touchstart', tryResumeBgMusic);
 
-// 📌 페이지 로드 즉시 자동재생 시도 (터치 없이 허용되는 환경이면 바로 재생됨,
-// 대부분의 모바일 브라우저는 정책상 차단하므로 그 경우 위 클릭/터치 시 재시도로 넘어감)
 document.addEventListener('visibilitychange', tryResumeBgMusic);
 window.addEventListener('load', () => {
   if (soundEnabled) bgMusic.play().catch(() => {});
@@ -378,7 +389,6 @@ function playSound(name) {
   }
 }
 
-// 📌 설정: 효과음 on/off, 기물 색상 커스터마이징 (localStorage 저장)
 function loadSettings() {
   const s = localStorage.getItem('abchess_sound');
   soundEnabled = s === null ? true : s === '1';
@@ -418,8 +428,6 @@ function setPieceColor(side, color) {
 
 loadSettings();
 
-// 📌 수호 / 마지막보호 공용 육각형 벌집 보호막 SVG
-// 📌 대기/타이틀 화면 공용: 가짜 이퀄라이저 바 생성
 function buildLoadBars(containerId) {
   const wrap = document.getElementById(containerId);
   if (!wrap || wrap.children.length) return;
@@ -430,7 +438,6 @@ function buildLoadBars(containerId) {
   }
 }
 
-// 📌 대기/타이틀 화면 공용: 스포트라이트 받는 기물을 3초마다 순환 (킹→퀸→룩→비숍→나이트→폰)
 const spotSequence = ["♔", "♕", "♖", "♗", "♘", "♙"];
 const spotIntervals = {};
 function startSpotlightCycle(elId) {
@@ -453,7 +460,6 @@ function stopSpotlightCycle(elId) {
   clearInterval(spotIntervals[elId]);
 }
 
-// 📌 대기 화면: 진행바를 지정 시간에 맞춰 애니메이션
 function animateLoadProgress(durationMs) {
   const fill = document.getElementById("loadFill");
   const pct = document.getElementById("loadPct");
@@ -469,7 +475,6 @@ function animateLoadProgress(durationMs) {
   requestAnimationFrame(step);
 }
 
-// 📌 대기/타이틀/설정 화면 공용: 키이 5초 -> 다섯 기물 라인업 10초 반복 교체
 const sceneKingImg = "bg-king.jpg";
 const sceneLineupImg = "bg-lineup.jpg";
 
@@ -481,7 +486,6 @@ function applyKingScene() {
   });
 }
 
-// 라인업 사진 한 장을 확대해서 위치만 옮겨가며 5개 기물을 순서대로 클로즈업 (카메라 패닝 효과)
 const lineupPositions = ['0% center', '25% center', '50% center', '75% center', '100% center'];
 function applyLineupScene(posIndex) {
   document.querySelectorAll('.loadRight').forEach(el => {
@@ -556,7 +560,6 @@ function spawnStockfishWorker() {
       stockfishWorker = new Worker(URL.createObjectURL(blob));
       stockfishWorker.onmessage = function(e) {
         if (e.data === 'uciok') {
-          // 📌 강도는 그대로 두고 속도만 개선: 해시(전치테이블) 확대 + 지원되면 멀티스레드 시도
           stockfishWorker.postMessage('setoption name Hash value 64');
           stockfishWorker.postMessage('setoption name Threads value 4');
           stockfishWorker.postMessage('isready');
@@ -577,7 +580,6 @@ function initStockfish() {
   spawnStockfishWorker();
 }
 
-// 📌 이중 안전장치: 1) UCI stop 명령으로 정중하게 중단 요청 → 2) 그래도 응답 없으면 워커 강제종료+재생성 후 대체 수 진행
 function pickFallbackLegalMove() {
   const candidates = [];
   for (let r1 = 0; r1 < 8; r1++) for (let c1 = 0; c1 < 8; c1++) {
@@ -599,7 +601,6 @@ function goWithTimeout(goCmd) {
     if (stockfishWorker) stockfishWorker.postMessage('stop');
   }, cap + 500);
   stockfishHardKillTimer = setTimeout(() => {
-    // stop 명령에도 응답이 없음 -> 워커 강제 종료 후 재생성하고, 게임이 멈추지 않도록 즉시 대체 수 진행
     spawnStockfishWorker();
     const fb = pickFallbackLegalMove();
     if (fb) move(fb[0], fb[1], fb[2], fb[3]);
@@ -644,7 +645,6 @@ function squareToUCI(r, c) {
   return cols[c] + (8 - r);
 }
 
-// 📌 능력 규칙(보호/무장해제/질풍 잡기금지 등)을 통과한 수만 스톡피쉬에게 후보로 제시
 function getLegalMovesUCI() {
   const moves = [];
   for (let r1 = 0; r1 < 8; r1++) {
@@ -668,10 +668,12 @@ function getLegalMovesUCI() {
   return moves;
 }
 
-// 📌 [수정 완료] AI 스킬 사용 연쇄 버그 차단 함수
 function requestStockfishMove() {
-  if (!stockfishWorker || !engineReady || whiteTurn || pendingPromotion || pendingBloodBonus || hojunGameOver || easterEggLoss || collapseGameOver || reviveMode || fuseMode) return;
+  if (!stockfishWorker || !engineReady || whiteTurn || pendingPromotion || pendingBloodBonus || hojunGameOver || easterEggLoss || collapseGameOver || reviveMode || fuseMode || gaeunMode) return;
 
+  if (blackChar === "gaeun" && blackCharge >= chars.gaeun.cd && !schrodingerState) {
+    aiUseGaeun(); return;
+  }
   if (blackChar === "seojun" && blackCharge >= chars.seojun.cd) {
     aiUseBomb(); return;
   }
@@ -706,6 +708,16 @@ function aiFallbackMove(){
   if (legalMoves.length === 0) return;
   stockfishWorker.postMessage('position fen ' + boardToFEN());
   goWithTimeout('go depth ' + stockfishDepth + ' movetime ' + stockfishMoveTimeCap() + ' searchmoves ' + legalMoves.join(' '));
+}
+
+function aiUseGaeun() {
+  const pieces = [];
+  for (let r=0; r<8; r++) for (let c=0; c<8; c++) {
+    if (board[r][c] && !white(board[r][c]) && !["♚"].includes(board[r][c].type)) pieces.push([r,c]);
+  }
+  if (!pieces.length) { aiFallbackMove(); return; }
+  const choice = pieces[Math.floor(Math.random() * pieces.length)];
+  executeGaeunAbility(choice[0], choice[1]);
 }
 
 function aiUseBomb(){
@@ -771,14 +783,13 @@ function aiUseControl(){
 }
 
 function executeStockfishMove(moveStr) {
-  if(whiteTurn || pendingPromotion || reviveMode || fuseMode) return;
+  if(whiteTurn || pendingPromotion || reviveMode || fuseMode || gaeunMode) return;
   const cols = "abcdefgh";
   const c1 = cols.indexOf(moveStr[0]), r1 = 8 - parseInt(moveStr[1]);
   const c2 = cols.indexOf(moveStr[2]), r2 = 8 - parseInt(moveStr[3]);
   const promoChar = moveStr[4];
   if (inside(r1, c1) && inside(r2, c2)) move(r1, c1, r2, c2, promoChar);
 }
-
 
 const chars={
  doyoon:{name:"강도윤",ability:"질풍",cd:5,level:"beginner",desc:"추가 이동 가능 (2번째 이동 시 잡기 불가)"},
@@ -795,6 +806,7 @@ const chars={
  jihyeon:{name:"김지현",ability:"혈찬",cd:0,level:"beginner",desc:"[패시브] 상대 기물(폰 제외)을 2개 잡을 때마다, 잡으러 이동하기 전 있던 칸에 나이트/비숍 중 하나를 소환한다"},
  hojun:{name:"이호준",ability:"진화",cd:0,level:"advanced",desc:"내 폰 하나를 랜덤 지정한다. 그 폰이 기물을 잡을 때마다 진화(폰→나이트→비숍→룩→퀸→아마존). 아마존 상태에서 메이저피스(룩/퀸)를 잡으면 즉시 승리! (판당 1회)"},
  hyungchul:{name:"이형철",ability:"붕괴",cd:10,level:"advanced",desc:"사용 2턴 후 a·h파일과 1·8랭크가 붕괴해 그 자리의 기물(킹 포함)이 즉사한다. 이후 승급 칸이 2·7랭크로 바뀐다 (쿨타임 10턴, 판당 1회)"},
+ gaeun:{name:"신가은",ability:"슈뢰딩거",cd:6,level:"advanced",desc:"내 기물 1개를 선택 후 50% 확률로 생사 판정(1턴 후 공개). 상대 예측 실패 시 상대 동일 기물 1개 파괴, 성공 시 내 기물 사망!"},
  easterEgg:{name:"시한폭탄",ability:"계약 발동됨",cd:999,desc:"[이스터에그] 7턴 이내에 백의 킹을 잡지 못하면 흑 패배!"}
 };
 
@@ -809,6 +821,9 @@ let disarmedPiece=null,disarmedUntil=0;
 let protectedPieces=[],protectedUntil=0;
 let enPassantTarget=null, bombMode=false, teleportMode=false, teleportSource=null;
 let movedKing={white:false, black:false}, movedRook={whiteA:false, whiteH:false, blackA:false, blackH:false};
+
+let gaeunMode = false;
+let schrodingerState = null;
 
 let fuseMode = false;
 let fusePawnPos = null;
@@ -1008,8 +1023,6 @@ function anyLegal(w){
 
 function legalFor(w,r1,c1,r2,c2){ const old=whiteTurn;whiteTurn=w;const x=legal(r1,c1,r2,c2);whiteTurn=old;return x; }
 
-// 📌 오서윤 '조종' 능력 전용: 상대 기물을 자신의 것처럼 움직일 때의 이동지 계산
-// 같은 색 기물도 포획 대상으로 취급하되, 어떤 색의 킹도 목표로 삼을 수 없다.
 function getControlDestinations(r1, c1) {
   const pObj = board[r1][c1];
   if (!pObj) return [];
@@ -1141,6 +1154,95 @@ function getRandomFusedPiece(isWhite) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+function executeGaeunAbility(r, c) {
+  const isAlive = Math.random() < 0.5;
+  const pieceObj = board[r][c];
+  schrodingerState = {
+    ownerIsWhite: whiteTurn,
+    pieceId: pieceObj.id,
+    pieceType: pieceObj.type,
+    isAlive: isAlive,
+    dueTurn: turn + 1
+  };
+  gaeunMode = false;
+  if (whiteTurn) whiteCharge = 0; else blackCharge = 0;
+  playSound("ability");
+  alert(`📦 슈뢰딩거의 상자에 기물을 넣었습니다! 1턴 뒤 관측이 시작됩니다.`);
+  handleTurnEnd();
+}
+
+function checkSchrodinger() {
+  if (!schrodingerState) return;
+  if (turn >= schrodingerState.dueTurn && whiteTurn !== schrodingerState.ownerIsWhite) {
+    if (isVsAI && whiteTurn !== myPremoveColor()) {
+      const aiGuess = Math.random() < 0.5;
+      resolveGaeunGuess(aiGuess);
+    } else if (!isOnline || whiteTurn === myColor) {
+      document.getElementById("gaeunGuessModal").style.display = "flex";
+    }
+  }
+}
+
+function resolveGaeunGuess(guessedAlive) {
+  document.getElementById("gaeunGuessModal").style.display = "none";
+  if (!schrodingerState) return;
+
+  const actualAlive = schrodingerState.isAlive;
+  const ownerIsWhite = schrodingerState.ownerIsWhite;
+  const targetType = schrodingerState.pieceType;
+
+  let pos = null;
+  for (let r=0; r<8; r++) {
+    for (let c=0; c<8; c++) {
+      if (board[r][c] && board[r][c].id === schrodingerState.pieceId) {
+        pos = [r, c]; break;
+      }
+    }
+  }
+
+  if (actualAlive) {
+    alert(`✨ [관측 결과] 기물은 '생존'해 있었습니다!`);
+  } else {
+    alert(`💀 [관측 결과] 기물은 '사망'해 있었습니다!`);
+    if (pos) {
+      if (ownerIsWhite) deadPieces.white.push(board[pos[0]][pos[1]].type);
+      else deadPieces.black.push(board[pos[0]][pos[1]].type);
+      board[pos[0]][pos[1]] = null;
+    }
+  }
+
+  if (guessedAlive === actualAlive) {
+    alert(`🎯 상대방이 생사를 정확히 맞췄습니다! 선택했던 내 기물이 파괴됩니다.`);
+    if (pos && board[pos[0]][pos[1]]) {
+      if (ownerIsWhite) deadPieces.white.push(board[pos[0]][pos[1]].type);
+      else deadPieces.black.push(board[pos[0]][pos[1]].type);
+      board[pos[0]][pos[1]] = null;
+    }
+  } else {
+    alert(`❌ 상대방이 선택에 실패했습니다! 상대방의 똑같은 기물 1개가 파괴됩니다.`);
+    const enemyIsWhite = !ownerIsWhite;
+    const targets = [];
+    for (let r=0; r<8; r++) {
+      for (let c=0; c<8; c++) {
+        if (board[r][c] && white(board[r][c]) === enemyIsWhite && board[r][c].type === targetType) {
+          targets.push([r, c]);
+        }
+      }
+    }
+    if (targets.length > 0) {
+      const destroyPos = targets[Math.floor(Math.random() * targets.length)];
+      if (enemyIsWhite) deadPieces.white.push(board[destroyPos[0]][destroyPos[1]].type);
+      else deadPieces.black.push(board[destroyPos[0]][destroyPos[1]].type);
+      board[destroyPos[0]][destroyPos[1]] = null;
+    }
+  }
+
+  schrodingerState = null;
+  playSound("capture");
+  render();
+  if (isOnline) broadcastState();
+}
+
 function render(){
  const el=document.getElementById("board");el.innerHTML="";
  const chk=inCheck(whiteTurn);
@@ -1160,6 +1262,10 @@ function render(){
    if(selected&&selected[0]===r&&selected[1]===c)cell.classList.add("selected");
    if(!mate&&!isDraw&&!isHojunOver&&selected&&legal(selected[0],selected[1],r,c))cell.classList.add("move");
    
+   if(gaeunMode && board[r][c] && white(board[r][c])===whiteTurn && !["♔","♚"].includes(board[r][c].type)) {
+     cell.classList.add("gaeunTarget");
+   }
+
    if(bombMode && board[r][c] && white(board[r][c])===whiteTurn && !["♙","♟"].includes(board[r][c].type)) {
      cell.classList.add("bombTarget");
    }
@@ -1213,6 +1319,9 @@ function render(){
 
      cell.appendChild(sp);
 
+     if(schrodingerState && schrodingerState.pieceId === pObj.id){
+       const m=document.createElement("div");m.className="marker schrodinger";cell.appendChild(m);
+     }
      if(protectedPieces.length > 0 && protectedUntil>=turn && protectedPieces.some(p => p.id === pObj.id)){
        cell.insertAdjacentHTML('beforeend', hexShieldSVG('#00d2ff'));
      }
@@ -1230,7 +1339,7 @@ function render(){
  }
 
  const abBtn = document.getElementById("ability");
- if(bombMode || teleportMode || reviveMode || fuseMode || controlMode) abBtn.classList.add("active"); else abBtn.classList.remove("active");
+ if(bombMode || teleportMode || reviveMode || fuseMode || controlMode || gaeunMode) abBtn.classList.add("active"); else abBtn.classList.remove("active");
 
  if(hojunGameOver) document.getElementById("status").textContent = `👑 ${hojunGameOver === "white" ? "백" : "흑"} 승리! (진화 완성)`;
  else if(easterEggLoss) document.getElementById("status").textContent = `💥 흑 패배! (시한폭탄 시간 종료)`;
@@ -1263,14 +1372,16 @@ function render(){
  if (curCharKey === "minsu" && minsuIsUsed) ready = false;
  if (curCharKey === "hojun" && hojunIsUsed) ready = false;
  if (curCharKey === "hyungchul" && hyungchulIsUsed) ready = false;
+ if (curCharKey === "gaeun" && schrodingerState) ready = false;
 
- abBtn.textContent=(bombMode || teleportMode || reviveMode || fuseMode || controlMode) ? "취소" : ((curCharKey === "gangjun" || curCharKey === "easterEgg" || curCharKey === "jihyeon") ? "패시브" : curChar.ability);
- abBtn.disabled=(!ready && !bombMode && !teleportMode && !reviveMode && !fuseMode && !controlMode) || mate || isDraw || isHojunOver || (isVsAI && !whiteTurn) || (isOnline && whiteTurn !== myColor);
+ abBtn.textContent=(bombMode || teleportMode || reviveMode || fuseMode || controlMode || gaeunMode) ? "취소" : ((curCharKey === "gangjun" || curCharKey === "easterEgg" || curCharKey === "jihyeon") ? "패시브" : curChar.ability);
+ abBtn.disabled=(!ready && !bombMode && !teleportMode && !reviveMode && !fuseMode && !controlMode && !gaeunMode) || mate || isDraw || isHojunOver || (isVsAI && !whiteTurn) || (isOnline && whiteTurn !== myColor);
  
  let statusText = ready ? "장전 완료" : (curChar.cd - curCharge) + "턴 후 장전";
  if (curCharKey === "uiji" && uijiIsUsed) statusText = "사용 완료 (1회 제한)";
  if (curCharKey === "elli" && elliIsUsed) statusText = "사용 완료 (1회 제한)";
  if (curCharKey === "seoyoon" && seoyoonIsUsed) statusText = "사용 완료 (1회 제한)";
+ if (curCharKey === "gaeun" && schrodingerState) statusText = "관측 진행 중...";
  if (curCharKey === "minsu" && minsuIsUsed) statusText = kingProtectUntil[whiteTurn?"white":"black"] >= turn ? "왕 보호 중 (1회 제한)" : "사용 완료 (1회 제한)";
  if (curCharKey === "jihyeon") statusText = `누적 처치 ${bloodKillCount[whiteTurn?"white":"black"] % 2}/2 (2마리마다 소환)`;
  if (curCharKey === "hojun" && hojunIsUsed) {
@@ -1302,8 +1413,8 @@ function render(){
    premoveBar.style.display = "none";
  }
 
- if(isVsAI && !whiteTurn && !mate && !isDraw && !isHojunOver && !pendingPromotion && !pendingBloodBonus && !reviveMode && !fuseMode) setTimeout(requestStockfishMove, 300);
- if(premoveQueue.length && whiteTurn===myPremoveColor() && (isVsAI || isOnline) && !mate && !isDraw && !isHojunOver && !pendingPromotion && !pendingBloodBonus && !reviveMode && !fuseMode) setTimeout(tryExecutePremove, 150);
+ if(isVsAI && !whiteTurn && !mate && !isDraw && !isHojunOver && !pendingPromotion && !pendingBloodBonus && !reviveMode && !fuseMode && !gaeunMode) setTimeout(requestStockfishMove, 300);
+ if(premoveQueue.length && whiteTurn===myPremoveColor() && (isVsAI || isOnline) && !mate && !isDraw && !isHojunOver && !pendingPromotion && !pendingBloodBonus && !reviveMode && !fuseMode && !gaeunMode) setTimeout(tryExecutePremove, 150);
 }
 
 function tap(r,c){
@@ -1317,6 +1428,13 @@ function tap(r,c){
  if(pendingPromotion) return;
  if(pendingBloodBonus) return;
  
+ if(gaeunMode){
+   if(board[r][c] && white(board[r][c])===whiteTurn && !["♔","♚"].includes(board[r][c].type)){
+     executeGaeunAbility(r, c);
+   }
+   return;
+ }
+
  if(bombMode){
    if(board[r][c] && white(board[r][c])===whiteTurn && !["♙","♟"].includes(board[r][c].type)){
      executeExplosion(r,c);
@@ -1393,9 +1511,8 @@ function tap(r,c){
  render();
 }
 
-// 📌 프리무브: 내 턴이 아닐 때(AI/온라인 대전) 다음 수를 미리 큐에 등록. 몇 개든 이어서 등록 가능
 function myPremoveColor() {
-  return isOnline ? myColor : true; // AI 대전에서는 플레이어가 항상 백
+  return isOnline ? myColor : true;
 }
 
 function handlePremoveTap(r, c) {
@@ -1435,19 +1552,17 @@ function cancelPremoves() {
 function tryExecutePremove() {
   if (!premoveQueue.length) return;
   if (whiteTurn !== myPremoveColor()) return;
-  if (hojunGameOver || easterEggLoss || collapseGameOver || pendingPromotion || pendingBloodBonus || reviveMode || fuseMode) return;
+  if (hojunGameOver || easterEggLoss || collapseGameOver || pendingPromotion || pendingBloodBonus || reviveMode || fuseMode || gaeunMode) return;
 
   const mv = premoveQueue.shift();
   if (legal(mv.r1, mv.c1, mv.r2, mv.c2)) {
     move(mv.r1, mv.c1, mv.r2, mv.c2);
   } else {
-    // 예상과 다른 상황(기물이 없어졌거나 더 이상 불법) -> 남은 프리무브 전체 취소
     premoveQueue = [];
     render();
   }
 }
 
-// 📌 이형철 · 붕괴: a/h파일 + 1/8랭크 테두리를 파괴하고, 그 자리의 기물(킹 포함)을 즉사시킴
 function triggerBoardCollapse() {
   boardCollapsed = true;
   let whiteKingDead = false, blackKingDead = false;
@@ -1594,16 +1709,14 @@ function showReviveModal() {
   }
 
   const uniqueList = [...new Set(reviveableList)];
-
   uniqueList.forEach(type => {
     const btn = document.createElement("button");
-    btn.className = "modalBtn " + (whiteTurn ? "whitePiece" : "blackPiece");
+    btn.className = "modalBtn";
     btn.textContent = type;
-
     btn.onclick = () => {
-      modal.style.display = "none";
       reviveType = type;
       reviveMode = true;
+      modal.style.display = "none";
       render();
     };
     container.appendChild(btn);
@@ -1611,815 +1724,6 @@ function showReviveModal() {
 
   modal.style.display = "flex";
 }
-
-// 📌 혈찬(김지현 패시브) 보너스 소환 모달
-function showBloodBonusModal(spawn) {
-  const knightType = spawn.isWhite ? "♘" : "♞";
-  const bishopType = spawn.isWhite ? "♗" : "♝";
-
-  const placePiece = (type) => {
-    if (!board[spawn.r][spawn.c]) {
-      board[spawn.r][spawn.c] = createPiece(type);
-      playSound("ability");
-    }
-    render();
-    if (isOnline) broadcastState();
-  };
-
-  // AI(흑)가 얻은 보너스는 모달 없이 자동으로 랜덤 선택
-  if (isVsAI && !spawn.isWhite) {
-    placePiece(Math.random() < 0.5 ? knightType : bishopType);
-    return;
-  }
-
-  pendingBloodBonus = true;
-  const modal = document.getElementById("bloodBonusModal");
-  const container = document.getElementById("bloodBonusChoices");
-  container.innerHTML = "";
-
-  [knightType, bishopType].forEach(type => {
-    const btn = document.createElement("button");
-    btn.className = "modalBtn " + (spawn.isWhite ? "whitePiece" : "blackPiece");
-    btn.textContent = type;
-    btn.onclick = () => {
-      modal.style.display = "none";
-      pendingBloodBonus = false;
-      placePiece(type);
-    };
-    container.appendChild(btn);
-  });
-
-  modal.style.display = "flex";
-}
-
-function showPromotionModal(isWhite, callback) {
-  const modal = document.getElementById("promotionModal");
-  const container = document.getElementById("promoChoices");
-  container.innerHTML = "";
-
-  const isAmazon = (isWhite ? whiteChar : blackChar) === "gangjun";
-  const queenSymbol = isAmazon ? (isWhite ? "Ⓐ" : "ⓐ") : (isWhite ? "♕" : "♛");
-
-  const options = [
-    { type: isWhite ? (isAmazon ? "Ⓐ" : "♕") : (isAmazon ? "ⓐ" : "♛"), symbol: queenSymbol },
-    { type: isWhite ? "♖" : "♜", symbol: isWhite ? "♖" : "♜" },
-    { type: isWhite ? "♗" : "♝", symbol: isWhite ? "♗" : "♝" },
-    { type: isWhite ? "♘" : "♞", symbol: isWhite ? "♘" : "♞" }
-  ];
-
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "modalBtn " + (isWhite ? "whitePiece" : "blackPiece");
-    
-    if (opt.type === "Ⓐ") {
-      btn.innerHTML = `<span class="amazonContainer"><span class="amazonCrown">♕</span>♘</span>`;
-    } else if (opt.type === "ⓐ") {
-      btn.innerHTML = `<span class="amazonContainer"><span class="amazonCrown">♛</span>♞</span>`;
-    } else {
-      btn.textContent = opt.symbol;
-    }
-
-    btn.onclick = () => {
-      modal.style.display = "none";
-      callback(opt.type);
-    };
-    container.appendChild(btn);
-  });
-
-  modal.style.display = "flex";
-}
-
-function move(r1, c1, r2, c2, stockfishPromoChoice = null) {
- const pObj = board[r1][c1];
- const p = pObj.type;
- let targetObj = board[r2][c2];
- let isCapture = !!targetObj;
- let isCastling = false;
-
- if (p === "🛡️" || p === "🛡") {
-   if (targetObj && !same(pObj, targetObj)) {
-     if (white(targetObj)) deadPieces.white.push(targetObj.type);
-     else deadPieces.black.push(targetObj.type);
-     
-     board[r2][c2] = null;
-     playSound("capture");
-     
-     if ((whiteTurn && r1 === 1) || (!whiteTurn && r1 === 6)) {
-       pObj.type = whiteTurn ? "♘" : "♞";
-       alert("🛡️ 로마기사병이 한계 도달에 성공하여 나이트로 승급했습니다!");
-     }
-     
-     render();
-     if(isOnline) broadcastState();
-     return;
-   }
- }
-
- const isEnPassant = (p==="♙"||p==="♟") && Math.abs(c2-c1)===1 && !targetObj && enPassantTarget && enPassantTarget[0]===r2 && enPassantTarget[1]===c2;
- if(isEnPassant){
-   targetObj = board[r1][c2];
-   board[r1][c2] = null;
-   isCapture = true;
- }
-
- if(targetObj){
-   if(white(targetObj)) deadPieces.white.push(targetObj.type);
-   else deadPieces.black.push(targetObj.type);
-
-   const killerIsJihyeon = whiteTurn ? (whiteChar === "jihyeon") : (blackChar === "jihyeon");
-   if(killerIsJihyeon && !["♙","♟"].includes(targetObj.type)){
-     const kKey = whiteTurn ? "white" : "black";
-     bloodKillCount[kKey]++;
-     if(bloodKillCount[kKey] % 2 === 0){
-       pendingBloodSpawn = { r: r1, c: c1, isWhite: whiteTurn };
-     }
-   }
-
-   const hKey2 = whiteTurn ? "white" : "black";
-   const evoInfo = evolvingPawn[hKey2];
-   if(evoInfo && pObj.id === evoInfo.id){
-     const evoChain = whiteTurn ? ['♙','♘','♗','♖','♕','Ⓐ'] : ['♟','♞','♝','♜','♛','ⓐ'];
-     const curIdx = evoChain.indexOf(pObj.type);
-     if(curIdx === evoChain.length - 1){
-       if(["♖","♜","♕","♛"].includes(targetObj.type)){
-         hojunGameOver = hKey2;
-       }
-     } else if(curIdx >= 0){
-       pObj.type = evoChain[curIdx + 1];
-     }
-   }
- }
-
- const nextEnPassant = ((p==="♙"||p==="♟") && Math.abs(r2-r1)===2) ? [(r1+r2)/2, c1] : null;
-
- if((p==="♔"||p==="♚") && Math.abs(c2-c1)===2){
-   isCastling = true;
-   if(c2===6){ board[r1][5]=board[r1][7]; board[r1][7]=null; }
-   else if(c2===2){ board[r1][3]=board[r1][0]; board[r1][0]=null; }
- }
-
- if(p==="♔") movedKing.white=true; if(p==="♚") movedKing.black=true;
- if(p==="♖"){ if(r1===7&&c1===0) movedRook.whiteA=true; if(r1===7&&c1===7) movedRook.whiteH=true; }
- if(p==="♜"){ if(r1===0&&c1===0) movedRook.blackA=true; if(r1===0&&c1===7) movedRook.blackH=true; }
-
- board[r2][c2] = pObj; board[r1][c1] = null;
-
- if (hojunGameOver) {
-   render();
-   if (isOnline) broadcastState();
-   playSound("gameEnd");
-   const winnerLabel = hojunGameOver === "white" ? "백" : "흑";
-   alert(`👑 ${winnerLabel}의 폰이 완전한 진화를 마치고 최종 일격을 성공시켰습니다! ${winnerLabel} 승리!`);
-   return;
- }
-
- if ((p === "🛡️" && r2 <= 1) || (p === "🛡" && r2 >= 6)) {
-   pObj.type = whiteTurn ? "♘" : "♞";
-   grantFreeBonusMove = true;
-   alert("🛡️ 로마기사병이 전진 완료하여 즉시 나이트로 승급했습니다! 추가로 한 번 더 움직일 수 있습니다!");
- }
-
- const whitePromoRow = boardCollapsed ? 1 : 0;
- const blackPromoRow = boardCollapsed ? 6 : 7;
- const isWhitePawnPromo = (p === "♙" && r2 === whitePromoRow);
- const isBlackPawnPromo = (p === "♟" && r2 === blackPromoRow);
-
- lastMoved = pObj; lastMovedWasKing = p === "♔" || p === "♚";
- enPassantTarget = nextEnPassant;
- selected = null;
-
- if(whiteTurn){ if(whiteCharge < chars[whiteChar].cd) whiteCharge++; }
- else { if(blackCharge < chars[blackChar].cd) blackCharge++; }
-
- const finishMove = () => {
-   const chk = inCheck(!whiteTurn);
-   const hasMoves = anyLegal(!whiteTurn);
-   const mate = chk && !hasMoves;
-   const stalemate = !chk && !hasMoves;
-   const insufficient = isInsufficientMaterial();
-
-   if (mate || stalemate || insufficient) playSound("gameEnd");
-   else if (chk) playSound("check");
-   else if (isCastling) playSound("castle");
-   else if (isCapture) playSound("capture");
-   else playSound("move");
-
-   if (stalemate) alert("🤝 스테일메이트! 더 이상 둘 수 있는 합법적인 수가 없어 무승부입니다!");
-   if (insufficient) alert("🤝 기물 부족! 더 이상 체크메이트를 만들 수 없는 기물만 남아 무승부입니다!");
-
-   handleTurnEnd();
-
-   if (pendingBloodSpawn) {
-     const spawn = pendingBloodSpawn;
-     pendingBloodSpawn = null;
-     showBloodBonusModal(spawn);
-   }
- };
-
- if (isWhitePawnPromo || isBlackPawnPromo) {
-   if (isVsAI && !whiteTurn && stockfishPromoChoice) {
-     const map = {
-       'q': (blackChar === "gangjun" ? "ⓐ" : "♛"),
-       'r': "♜",
-       'b': "♝",
-       'n': "♞"
-     };
-     pObj.type = map[stockfishPromoChoice] || "♛";
-     finishMove();
-   } else {
-     pendingPromotion = true;
-     showPromotionModal(whiteTurn, (chosenType) => {
-       pObj.type = chosenType;
-       pendingPromotion = false;
-       finishMove();
-     });
-   }
- } else {
-   finishMove();
- }
-}
-
-function handleTurnEnd() {
-  if (grantBonusMove) {
-    grantBonusMove = false;
-    bonusMoveNoCapture = true;
-    render();
-    if(isOnline) broadcastState();
-    return;
-  }
-  if (grantFreeBonusMove) {
-    grantFreeBonusMove = false;
-    freeBonusMoveActive = true;
-    render();
-    if(isOnline) broadcastState();
-    return;
-  }
-  bonusMoveNoCapture = false;
-  freeBonusMoveActive = false;
-
-  if (pendingCollapseTurns !== null) {
-    pendingCollapseTurns--;
-    if (pendingCollapseTurns <= 0) {
-      pendingCollapseTurns = null;
-      triggerBoardCollapse();
-      if (collapseGameOver) {
-        render();
-        if (isOnline) broadcastState();
-        return;
-      }
-    }
-  }
-
-  if (isEasterEggActive) {
-    if (whiteTurn) {
-      whiteTurn = false;
-      blackConsecutiveMoves = 1;
-    } else {
-      if (blackConsecutiveMoves === 1) {
-        blackConsecutiveMoves = 2;
-      } else {
-        whiteTurn = true;
-        blackConsecutiveMoves = 0;
-        easterEggTurnsLeft--;
-
-        if (easterEggTurnsLeft <= 0) {
-          easterEggLoss = true;
-          playSound("gameEnd");
-          alert("💥 시한폭탄 카운트다운 종료! 백을 잡지 못한 흑의 패배!");
-          render();
-          if(isOnline) broadcastState();
-          return;
-        }
-      }
-    }
-  } else {
-    whiteTurn = !whiteTurn;
-  }
-
-  turn++;
-  render();
-  if(isOnline) broadcastState();
-}
-
-function triggerAbility(){
- const curCharKey=whiteTurn?whiteChar:blackChar;
- let success = false;
-
- if(curCharKey==="doyoon"){
-   if(whiteTurn) whiteCharge = 0; else blackCharge = 0;
-   grantBonusMove=true; success = true;
- } else if(curCharKey==="hanna"){
-   if(!lastMoved||lastMovedWasKing)return false;
-   disarmedPiece=lastMoved; disarmedUntil=turn+1;
-   if(whiteTurn) whiteCharge = 0; else blackCharge = 0;
-   success = true;
- } else if(curCharKey==="hajun"){
-   const myPieces=[];
-   for(let r=0;r<8;r++)for(let c=0;c<8;c++)
-    if(board[r][c]&&white(board[r][c])===whiteTurn&&!["♔","♚"].includes(board[r][c].type)) myPieces.push(board[r][c]);
-   
-   if(!myPieces.length) return false;
-   
-   for (let i = myPieces.length - 1; i > 0; i--) {
-     const j = Math.floor(Math.random() * (i + 1));
-     [myPieces[i], myPieces[j]] = [myPieces[j], myPieces[i]];
-   }
-   
-   protectedPieces = myPieces.slice(0, 3);
-   protectedUntil = turn + 1;
-
-   if(whiteTurn) whiteCharge = 0; else blackCharge = 0;
-   success = true;
- } else if(curCharKey==="seojun"){
-   bombMode = !bombMode;
-   render();
-   return false;
- } else if(curCharKey==="seongjin"){
-   teleportMode = !teleportMode;
-   teleportSource = null;
-   render();
-   return false;
- } else if(curCharKey==="uiji"){
-   showReviveModal();
-   return false;
- } else if(curCharKey==="hayul"){
-   fuseMode = !fuseMode;
-   fusePawnPos = null;
-   render();
-   return false;
- } else if(curCharKey==="seoyoon"){
-   if (whiteTurn ? seoyoonUsed.white : seoyoonUsed.black) return false;
-   controlMode = !controlMode;
-   controlSource = null;
-   render();
-   return false;
- } else if(curCharKey==="minsu"){
-   if (whiteTurn ? minsuUsed.white : minsuUsed.black) return false;
-   if (whiteTurn) { minsuUsed.white = true; kingProtectUntil.white = turn + 3; }
-   else { minsuUsed.black = true; kingProtectUntil.black = turn + 3; }
-   success = true;
- } else if(curCharKey==="hojun"){
-   const hKey = whiteTurn ? "white" : "black";
-   if (hojunUsed[hKey]) return false;
-
-   const myPawnType = whiteTurn ? "♙" : "♟";
-   const pawns = [];
-   for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
-     if (board[r][c] && board[r][c].type === myPawnType) pawns.push(board[r][c]);
-   }
-   if (!pawns.length) {
-     if (whiteTurn || !isVsAI) alert("지정할 폰이 없습니다!");
-     return false;
-   }
-   const chosen = pawns[Math.floor(Math.random()*pawns.length)];
-   evolvingPawn[hKey] = { id: chosen.id };
-   hojunUsed[hKey] = true;
-
-   if (whiteTurn || !isVsAI) alert("⚡ 진화의 폰이 지정되었습니다! 이 폰이 기물을 잡을 때마다 진화합니다.");
-   success = true;
- } else if(curCharKey==="hyungchul"){
-   const hcKey = whiteTurn ? "white" : "black";
-   if (hyungchulUsed[hcKey]) return false;
-   hyungchulUsed[hcKey] = true;
-   pendingCollapseTurns = 2;
-   if (whiteTurn || !isVsAI) alert("💥 붕괴가 시작되었습니다! 2턴 후 a·h파일과 1·8랭크가 붕괴합니다!");
-   success = true;
- } else if(curCharKey==="elli"){
-   if (whiteTurn ? elliUsed.white : elliUsed.black) return false;
-
-   const pawns = [];
-   const targetPawnType = whiteTurn ? "♙" : "♟";
-   for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
-     if (board[r][c] && board[r][c].type === targetPawnType) pawns.push([r,c]);
-   }
-   if (!pawns.length) {
-     if (whiteTurn || !isVsAI) alert("변환할 폰이 없습니다!");
-     return false;
-   }
-   const [r,c] = pawns[Math.floor(Math.random()*pawns.length)];
-   board[r][c].type = whiteTurn ? "🛡️" : "🛡";
-   
-   if (whiteTurn) elliUsed.white = true; else elliUsed.black = true;
-   playSound("ability");
-   
-   if (whiteTurn || !isVsAI) {
-     alert(`🛡️ (${r}, ${c}) 위치의 폰이 로마기사병으로 변경되었습니다!`);
-   }
-   
-   render();
-   return true;
- }
-
- if(success) playSound("ability");
- return success;
-}
-
-document.getElementById("ability").onclick=()=>{ 
-  if(bombMode) bombMode = false;
-  else if(teleportMode) { teleportMode = false; teleportSource = null; }
-  else if(reviveMode) { reviveMode = false; reviveType = null; }
-  else if(fuseMode) { fuseMode = false; fusePawnPos = null; }
-  else if(controlMode) { controlMode = false; controlSource = null; }
-  else triggerAbility();
-  render();
-};
-
-let bc="hanna",wc="doyoon";
-function setMode(mode, btn) {
-  gameMode = mode;
-  isVsAI = (mode === "ai");
-  isOnline = (mode === "online");
-  document.querySelectorAll(".modeBtn").forEach(b => b.classList.remove("selected"));
-  btn.classList.add("selected");
-  const lbl = document.getElementById("blackLabel");
-  if (lbl) lbl.textContent = isVsAI ? "(Stockfish)" : "(플레이어 2)";
-}
-function setDifficulty(depth, btn) {
-  stockfishDepth = depth;
-  document.querySelectorAll(".diffBtn").forEach(b => b.classList.remove("selected"));
-  btn.classList.add("selected");
-}
-function onModeNext() {
-  if (gameMode === "ai") nextStep('modeStep', 'diffStep');
-  else if (gameMode === "online") nextStep('modeStep', 'onlineChoiceStep');
-  else nextStep('modeStep', 'blackStep');
-}
-
-function generateRoomCode() {
-  return String(Math.floor(1000 + Math.random() * 9000));
-}
-
-function cancelOnline(fromStepId) {
-  if (conn) { try { conn.close(); } catch(e){} conn = null; }
-  if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
-  onlineRole = null; myColor = null; myPickedChar = null; remotePickedChar = null;
-  const hs = document.getElementById("hostStatus"); if(hs) hs.textContent = "연결 대기중...";
-  const js = document.getElementById("joinStatus"); if(js) js.textContent = "";
-  const ci = document.getElementById("joinCodeInput"); if(ci) ci.value = "";
-  nextStep(fromStepId, 'modeStep');
-}
-
-function hostRoom() {
-  nextStep('onlineChoiceStep', 'onlineHostStep');
-  document.getElementById("hostStatus").textContent = "코드 생성중...";
-  tryHostPeer(3);
-}
-
-function tryHostPeer(attemptsLeft) {
-  roomCode = generateRoomCode();
-  document.getElementById("roomCodeDisplay").textContent = roomCode;
-  if (peer) { try { peer.destroy(); } catch(e){} }
-  peer = new Peer("abchess-" + roomCode);
-
-  peer.on('open', () => {
-    document.getElementById("hostStatus").textContent = "친구가 코드를 입력하면 자동으로 연결돼요...";
-  });
-
-  peer.on('connection', c => {
-    conn = c;
-    onlineRole = 'host';
-    myColor = true;
-    document.getElementById("hostStatus").textContent = "연결 중... 잠시만 기다려줘.";
-    if (conn.open) {
-      setupConnection();
-    } else {
-      conn.on('open', () => setupConnection());
-      conn.on('error', () => {
-        document.getElementById("hostStatus").textContent = "연결에 실패했어. 같은 와이파이에서 다시 시도해봐.";
-      });
-    }
-  });
-
-  peer.on('error', (err) => {
-    if (err.type === 'unavailable-id' && attemptsLeft > 0) {
-      tryHostPeer(attemptsLeft - 1);
-    } else {
-      document.getElementById("hostStatus").textContent = "연결 오류가 발생했어요. 다시 시도해줘.";
-    }
-  });
-}
-
-function copyRoomCode(btn) {
-  if (!roomCode) return;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(roomCode).catch(()=>{});
-  }
-  const old = btn.textContent;
-  btn.textContent = "복사됨!";
-  setTimeout(()=>{ btn.textContent = old; }, 1200);
-}
-
-function attemptJoin() {
-  const code = document.getElementById("joinCodeInput").value.trim();
-  const statusEl = document.getElementById("joinStatus");
-  if (!/^\d{4}$/.test(code)) {
-    statusEl.textContent = "4자리 숫자 코드를 입력해줘.";
-    return;
-  }
-  statusEl.textContent = "연결중...";
-  if (peer) { try { peer.destroy(); } catch(e){} }
-  peer = new Peer();
-
-  const joinTimeout = setTimeout(() => {
-    statusEl.textContent = "연결이 너무 오래 걸려. 네트워크(와이파이/데이터) 문제일 수 있어. 같은 와이파이로 다시 시도해봐.";
-  }, 10000);
-
-  peer.on('open', () => {
-    conn = peer.connect("abchess-" + code);
-    conn.on('open', () => {
-      clearTimeout(joinTimeout);
-      onlineRole = 'guest';
-      myColor = false;
-      setupConnection();
-    });
-    conn.on('error', () => {
-      clearTimeout(joinTimeout);
-      statusEl.textContent = "연결에 실패했어. 코드를 확인하거나 같은 와이파이로 시도해봐.";
-    });
-  });
-
-  peer.on('error', (err) => {
-    clearTimeout(joinTimeout);
-    if (err.type === 'peer-unavailable') {
-      statusEl.textContent = "해당 코드의 방을 찾을 수 없어. 코드를 다시 확인해줘.";
-    } else {
-      statusEl.textContent = "연결 오류가 발생했어 (" + err.type + "). 다시 시도해줘.";
-    }
-  });
-}
-
-function setupConnection() {
-  conn.on('data', handleIncomingData);
-  conn.on('close', () => {
-    alert("상대방과의 연결이 끊겼습니다.");
-  });
-  goToOnlineCharStep();
-}
-
-function goToOnlineCharStep() {
-  const fromId = onlineRole === 'host' ? 'onlineHostStep' : 'onlineJoinStep';
-  document.getElementById("onlineColorLabel").textContent = myColor ? "당신은 백(WHITE)" : "당신은 흑(BLACK)";
-  document.getElementById("onlineColorLabel").className = "side " + (myColor ? "white" : "black");
-  document.getElementById("onlineCharStatus").textContent = "";
-  nextStep(fromId, 'onlineCharStep');
-}
-
-function chooseOnlineChar(ch, btn) {
-  myPickedChar = ch;
-  document.querySelectorAll('#onlineChoices .choice').forEach(b => b.classList.remove("whiteSel","blackSel"));
-  btn.classList.add(myColor ? "whiteSel" : "blackSel");
-}
-
-let myCharConfirmed = false;
-let remoteCharConfirmed = false;
-let onlineGameStarted = false;
-
-function confirmOnlineChar() {
-  if (!myPickedChar) { alert("캐릭터를 먼저 선택해줘!"); return; }
-
-  myCharConfirmed = true;
-  document.getElementById("onlineCharStatus").textContent = "선택 완료. 상대방 선택 대기중...";
-  sendData({type:'char', char:myPickedChar, confirmed:true});
-
-  if (myColor && remoteCharConfirmed) startOnlineGame();
-}
-
-function startOnlineGame() {
-  if (onlineGameStarted) return;
-  if (!myPickedChar || !remotePickedChar) return;
-  if (!myCharConfirmed || !remoteCharConfirmed) return;
-
-  onlineGameStarted = true;
-
-  if (myColor) {
-    wc = myPickedChar;
-    bc = remotePickedChar;
-  } else {
-    bc = myPickedChar;
-    wc = remotePickedChar;
-  }
-
-  finishSetup();
-
-  if (myColor) sendData({type:'startGame'});
-}
-
-function sendData(obj) {
-  if (conn && conn.open) conn.send(obj);
-}
-
-function handleIncomingData(data) {
-  if (!data) return;
-
-  if (data.type === 'char') {
-    remotePickedChar = data.char;
-    remoteCharConfirmed = !!data.confirmed;
-
-    document.getElementById("onlineCharStatus").textContent =
-      remoteCharConfirmed
-        ? "상대방 선택 완료. 내 선택을 완료하면 시작된다."
-        : "상대방 선택 대기중...";
-
-    if (myColor && myCharConfirmed && remoteCharConfirmed) {
-      startOnlineGame();
-    }
-  } else if (data.type === 'startGame') {
-    if (!myColor && myCharConfirmed && remoteCharConfirmed) {
-      startOnlineGame();
-    }
-  } else if (data.type === 'state') {
-    applyFullState(data.state);
-  }
-}
-
-function getFullState() {
-  return {
-    board: board.map(row => row.map(p => p ? {type:p.type, id:p.id} : null)),
-    whiteTurn, turn, whiteCharge, blackCharge,
-    grantBonusMove, bonusMoveNoCapture, grantFreeBonusMove, freeBonusMoveActive,
-    lastMoved: lastMoved ? {type:lastMoved.type, id:lastMoved.id} : null,
-    lastMovedWasKing,
-    disarmedPiece: disarmedPiece ? {type:disarmedPiece.type, id:disarmedPiece.id} : null,
-    disarmedUntil,
-    protectedPieces: protectedPieces.map(p => ({type:p.type, id:p.id})),
-    protectedUntil,
-    enPassantTarget,
-    movedKing: {...movedKing},
-    movedRook: {...movedRook},
-    deadPieces: {white:[...deadPieces.white], black:[...deadPieces.black]},
-    uijiUsed: {...uijiUsed}, elliUsed: {...elliUsed}, seoyoonUsed: {...seoyoonUsed}, minsuUsed: {...minsuUsed},
-    kingProtectUntil: {...kingProtectUntil}, bloodKillCount: {...bloodKillCount},
-    hojunUsed: {...hojunUsed}, evolvingPawn: {...evolvingPawn}, hojunGameOver, easterEggLoss,
-    hyungchulUsed: {...hyungchulUsed}, pendingCollapseTurns, boardCollapsed, collapseGameOver,
-    isEasterEggActive, easterEggTurnsLeft, blackConsecutiveMoves,
-    whiteChar, blackChar
-  };
-}
-
-function applyFullState(state) {
-  board = state.board.map(row => row.map(p => p ? {type:p.type, id:p.id} : null));
-  whiteTurn = state.whiteTurn; turn = state.turn;
-  whiteCharge = state.whiteCharge; blackCharge = state.blackCharge;
-  grantBonusMove = state.grantBonusMove; bonusMoveNoCapture = state.bonusMoveNoCapture;
-  grantFreeBonusMove = state.grantFreeBonusMove || false;
-  freeBonusMoveActive = state.freeBonusMoveActive || false;
-  lastMoved = state.lastMoved; lastMovedWasKing = state.lastMovedWasKing;
-  disarmedPiece = state.disarmedPiece; disarmedUntil = state.disarmedUntil;
-  protectedPieces = state.protectedPieces || []; protectedUntil = state.protectedUntil;
-  enPassantTarget = state.enPassantTarget;
-  movedKing = state.movedKing; movedRook = state.movedRook;
-  deadPieces = state.deadPieces;
-  uijiUsed = state.uijiUsed; elliUsed = state.elliUsed || {white:false, black:false};
-  seoyoonUsed = state.seoyoonUsed || {white:false, black:false};
-  minsuUsed = state.minsuUsed || {white:false, black:false};
-  kingProtectUntil = state.kingProtectUntil || {white:0, black:0};
-  bloodKillCount = state.bloodKillCount || {white:0, black:0};
-  hojunUsed = state.hojunUsed || {white:false, black:false};
-  evolvingPawn = state.evolvingPawn || {white:null, black:null};
-  hojunGameOver = state.hojunGameOver || null;
-  easterEggLoss = state.easterEggLoss || false;
-  hyungchulUsed = state.hyungchulUsed || {white:false, black:false};
-  pendingCollapseTurns = (typeof state.pendingCollapseTurns === 'number') ? state.pendingCollapseTurns : null;
-  boardCollapsed = state.boardCollapsed || false;
-  collapseGameOver = state.collapseGameOver || null;
-  isEasterEggActive = state.isEasterEggActive; easterEggTurnsLeft = state.easterEggTurnsLeft; blackConsecutiveMoves = state.blackConsecutiveMoves;
-  whiteChar = state.whiteChar; blackChar = state.blackChar;
-  selected = null; bombMode = false; teleportMode = false; teleportSource = null;
-  fuseMode = false; fusePawnPos = null; reviveMode = false; reviveType = null; pendingPromotion = false;
-  pendingBloodBonus = false; pendingBloodSpawn = null;
-  controlMode = false; controlSource = null;
-  render();
-}
-
-function broadcastState() {
-  sendData({type:'state', state: getFullState()});
-}
-function nextStep(current, next) {
-  document.getElementById(current).classList.remove("active");
-  document.getElementById(next).classList.add("active");
-}
-
-function goToWhiteStep() {
-  const allChars = ["doyoon", "hanna", "hajun", "seojun", "gangjun", "seongjin", "uiji", "elli", "seoyoon", "hayul", "minsu", "jihyeon", "hojun", "hyungchul"];
-  const available = allChars.filter(ch => ch !== bc);
-  wc = available[0];
-
-  document.querySelectorAll('.choice[data-side="white"]').forEach(btn => {
-    if (btn.dataset.char === bc) {
-      btn.disabled = true;
-    } else {
-      btn.disabled = false;
-    }
-  });
-
-  mark("white", wc);
-  nextStep('blackStep', 'whiteStep');
-  startHiddenTimer();
-}
-
-function finishSetup() {
-  stopHiddenTimer();
-  whiteChar = wc; blackChar = bc;
-  document.getElementById("setup").style.display = "none";
-  document.getElementById("loading").style.display = "flex";
-  buildLoadBars('loadBars');
-  animateLoadProgress(2200);
-  if (isVsAI) initStockfish();
-  setTimeout(() => {
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("game").style.display = "block";
-    bgMusic.pause();
-    board = initial(); whiteTurn = true; turn = 1; selected = null;
-    whiteCharge = 0; blackCharge = 0; grantBonusMove = false; bonusMoveNoCapture = false; grantFreeBonusMove = false; freeBonusMoveActive = false; lastMoved = null; lastMovedWasKing = false;
-    disarmedPiece = null; protectedPieces = []; enPassantTarget = null; bombMode = false; teleportMode = false; teleportSource = null;
-    fuseMode = false; fusePawnPos = null;
-    deadPieces = { white: [], black: [] };
-    uijiUsed = { white: false, black: false };
-    elliUsed = { white: false, black: false };
-    seoyoonUsed = { white: false, black: false };
-    minsuUsed = { white: false, black: false };
-    kingProtectUntil = { white: 0, black: 0 };
-    bloodKillCount = { white: 0, black: 0 };
-    hojunUsed = { white: false, black: false };
-    evolvingPawn = { white: null, black: null };
-    hojunGameOver = null;
-    easterEggLoss = false;
-    hyungchulUsed = { white: false, black: false };
-    pendingCollapseTurns = null;
-    boardCollapsed = false;
-    collapseGameOver = null;
-    premoveQueue = []; premoveSelected = null;
-    pendingBloodSpawn = null; pendingBloodBonus = false;
-    controlMode = false; controlSource = null;
-    reviveMode = false; reviveType = null;
-    easterEggTurnsLeft = 7; blackConsecutiveMoves = 0; pendingPromotion = null;
-    movedKing = {white:false, black:false};
-    movedRook = {whiteA:false, whiteH:false, blackA:false, blackH:false};
-    if (isEasterEggActive) {
-      playSound("ability");
-      alert("💣 [EASTER EGG] 선택 장애의 대가로 '시한폭탄의 계약'이 체결되었습니다!\n\n- 백의 능력이 변경되었습니다.\n- 흑은 턴마다 2수 연속으로 둘 수 있습니다.\n- 7턴 이내에 백의 킹을 잡지 못하면 흑 패배!");
-    }
-    render();
-  }, 2200);
-}
-
-function mark(side,ch){
- document.querySelectorAll(`.choice[data-side="${side}"]`).forEach(b=>{
-   b.classList.remove("blackSel","whiteSel");
-   if(b.dataset.char===ch)b.classList.add(side==="black"?"blackSel":"whiteSel");
- });
-}
-function choose(side,ch){
- stopHiddenTimer();
- if(side==="white" && ch===bc) return;
- if(side==="black") bc=ch; else wc=ch;
- mark(side,ch);
- if(side==="white") startHiddenTimer();
-}
-
-// 📌 캐릭터 선택 카드를 chars 데이터에서 자동 생성 (흑/백/온라인 3곳 공용)
-const levelLabel = { beginner: "초보 추천", intermediate: "중수 추천", advanced: "고수 추천" };
-
-function buildChoiceButton(key, side) {
-  const c = chars[key];
-  const btn = document.createElement("button");
-  btn.className = "choice";
-  if (side) btn.dataset.side = side;
-  btn.dataset.char = key;
-  const lvlClass = c.level || "beginner";
-  const lvlText = levelLabel[c.level] || "초보 추천";
-  btn.innerHTML = `<span class="cName">${c.name}</span><span class="cAbility">${c.ability}</span><span class="cDesc">${c.desc}</span><span class="cLevel ${lvlClass}">${lvlText}</span>`;
-  return btn;
-}
-
-const levelOrder = { beginner: 0, intermediate: 1, advanced: 2 };
-
-function renderCharChoices(containerId, side) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = "";
-  const keys = Object.keys(chars)
-    .filter(key => key !== "easterEgg")
-    .sort((a, b) => (levelOrder[chars[a].level] ?? 0) - (levelOrder[chars[b].level] ?? 0));
-  keys.forEach(key => {
-    const btn = buildChoiceButton(key, side);
-    if (side) btn.onclick = () => choose(side, key);
-    else btn.onclick = () => chooseOnlineChar(key, btn);
-    container.appendChild(btn);
-  });
-}
-
-renderCharChoices('blackChoices', 'black');
-renderCharChoices('whiteChoices', 'white');
-renderCharChoices('onlineChoices', null);
-choose("black","hanna");
-
-// 📌 시작화면(타이틀) 초기화 및 진입 처리
-function startGameFromTitle() {
-  document.getElementById('titleScreen').style.display = 'none';
-  document.getElementById('setup').style.display = 'flex';
-  buildLoadBars('setupLoadBars');
-}
-buildLoadBars('titleLoadBars');
 </script>
 </body>
 </html>
