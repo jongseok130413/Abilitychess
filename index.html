@@ -1,953 +1,572 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ABILITY CHESS</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0f0f12; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: min-content; min-height: 100vh; padding: 20px; }
-  h1 { margin-bottom: 15px; font-size: 2.2rem; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
-  
-  #titleScreen, #setup, #loading, #game { width: 100%; max-width: 600px; }
-  
-  .btn { padding: 12px 24px; font-size: 16px; font-weight: bold; margin: 8px; cursor: pointer; background: #222; color: #fff; border: 2px solid #555; border-radius: 6px; transition: all 0.2s ease; }
-  .btn:hover { background: #444; border-color: #888; transform: translateY(-2px); }
-  .btn:active { transform: translateY(0); }
-  .btn.selected { background: #0055ff; border-color: #66a3ff; }
-  
-  .step { display: none; flex-direction: column; align-items: center; width: 100%; }
-  .step.active { display: flex; }
-  
-  .choice-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; width: 100%; max-height: 380px; overflow-y: auto; margin: 15px 0; padding: 10px; background: #1a1a22; border-radius: 8px; }
-  .choice { border: 2px solid #333; background: #252530; border-radius: 6px; padding: 12px; cursor: pointer; text-align: left; transition: all 0.2s; }
-  .choice:hover { border-color: #777; background: #303040; }
-  .choice.whiteSel { border-color: #0088ff; background: #1a2a44; }
-  .choice.blackSel { border-color: #ff3333; background: #441a1a; }
-  .cName { font-weight: bold; font-size: 1.1rem; color: #fff; }
-  .cAbility { color: #ffcc00; font-size: 0.95rem; margin: 4px 0; }
-  .cDesc { font-size: 0.85rem; color: #bbb; line-height: 1.3; }
-  .cLevel { display: inline-block; font-size: 0.75rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-top: 6px; }
-  .cLevel.ssr { background: #ff9900; color: #000; }
-  .cLevel.sr { background: #aa00ff; color: #fff; }
-  .cLevel.r { background: #00aa22; color: #fff; }
-
-  #turnInfo { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; padding: 8px; background: #222; border-radius: 6px; width: 100%; }
-  
-  #board { display: grid; grid-template-columns: repeat(8, 55px); grid-template-rows: repeat(8, 55px); gap: 1px; margin: 15px auto; width: 441px; height: 441px; background: #111; border: 4px solid #444; border-radius: 4px; }
-  .cell { width: 55px; height: 55px; display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: pointer; user-select: none; transition: background 0.1s; }
-  .white-cell { background: #e0e0e0; color: #111; }
-  .black-cell { background: #4a4a5a; color: #fff; }
-  .cell.selected { background: #ffff55 !important; color: #000; }
-  .cell.highlight { background: #55ff55 !important; }
-  .cell.collapsed { background: #000000 !important; cursor: not-allowed; }
-
-  .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index: 1000; }
-  .modalContent { background:#222; padding:25px; border-radius:10px; border: 1px solid #555; max-width: 400px; width: 90%; }
-  .modalBtn { padding:12px 20px; margin:8px; font-size:22px; cursor:pointer; background: #333; color: #fff; border: 1px solid #666; border-radius: 6px; }
-  .modalBtn:hover { background: #555; }
-  
-  input[type="text"] { padding: 10px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; }
-</style>
-</head>
-<body>
-
-<h1>ABILITY CHESS</h1>
-
-<!-- Title Screen -->
-<div id="titleScreen">
-  <button class="btn" style="font-size: 20px; padding: 15px 40px;" onclick="startGameFromTitle()">게임 시작</button>
-</div>
-
-<!-- Setup Screen -->
-<div id="setup" style="display:none;">
-  <div id="modeStep" class="step active">
-    <h3>[게임 모드 선택]</h3>
-    <br>
-    <button class="btn modeBtn selected" onclick="setMode('pvp', this)">2인 플레이 (PvP)</button>
-    <button class="btn modeBtn" onclick="setMode('ai', this)">AI 대전</button>
-    <button class="btn modeBtn" onclick="setMode('online', this)">온라인 대전</button>
-    <br><br>
-    <button class="btn" onclick="onModeNext()">다음 단계</button>
-  </div>
-
-  <div id="diffStep" class="step">
-    <h3>[AI 난이도 선택]</h3>
-    <br>
-    <button class="btn diffBtn selected" onclick="setDifficulty(1, this)">쉬움</button>
-    <button class="btn diffBtn" onclick="setDifficulty(3, this)">보통</button>
-    <button class="btn diffBtn" onclick="setDifficulty(5, this)">어려움</button>
-    <br><br>
-    <button class="btn" onclick="goToWhiteStep()">다음 단계</button>
-  </div>
-
-  <div id="blackStep" class="step">
-    <h3>[BLACK 캐릭터 선택]</h3>
-    <div id="blackChoices" class="choice-container"></div>
-    <button class="btn" onclick="goToWhiteStep()">다음 단계</button>
-  </div>
-
-  <div id="whiteStep" class="step">
-    <h3>[WHITE 캐릭터 선택]</h3>
-    <div id="whiteChoices" class="choice-container"></div>
-    <button class="btn" onclick="finishSetup()">게임 개시</button>
-  </div>
-
-  <div id="onlineChoiceStep" class="step">
-    <h3>[온라인 멀티플레이]</h3>
-    <br>
-    <button class="btn" onclick="hostRoom()">방 만들기 (HOST)</button>
-    <button class="btn" onclick="nextStep('onlineChoiceStep', 'onlineJoinStep')">방 참가하기 (GUEST)</button>
-    <br><br>
-    <button class="btn" onclick="cancelOnline('onlineChoiceStep')">뒤로가기</button>
-  </div>
-
-  <div id="onlineHostStep" class="step">
-    <h3>방 코드: <span id="roomCodeDisplay" style="color:#0088ff;">-</span></h3>
-    <br>
-    <button class="btn" onclick="copyRoomCode(this)">코드 복사</button>
-    <p id="hostStatus" style="margin: 15px 0;">상대방 접속 대기 중...</p>
-    <button class="btn" onclick="cancelOnline('onlineHostStep')">취소</button>
-  </div>
-
-  <div id="onlineJoinStep" class="step">
-    <h3>[방 코드 입력]</h3>
-    <br>
-    <input type="text" id="joinCodeInput" placeholder="4자리 코드" maxlength="4" style="font-size:20px; text-align:center; width: 150px;">
-    <br><br>
-    <button class="btn" onclick="attemptJoin()">참가하기</button>
-    <p id="joinStatus" style="margin: 15px 0;"></p>
-    <button class="btn" onclick="cancelOnline('onlineJoinStep')">취소</button>
-  </div>
-
-  <div id="onlineCharStep" class="step">
-    <h3 id="onlineColorLabel">캐릭터 선택</h3>
-    <div id="onlineChoices" class="choice-container"></div>
-    <button class="btn" onclick="confirmOnlineChar()">선택 완료</button>
-    <p id="onlineCharStatus" style="margin-top: 10px;"></p>
-  </div>
-</div>
-
-<!-- Loading Screen -->
-<div id="loading" style="display:none; flex-direction:column; align-items:center;">
-  <h2>전장 로딩 중...</h2>
-</div>
-
-<!-- Game Screen -->
-<div id="game" style="display:none;">
-  <div id="turnInfo">Turn: 1 (WHITE)</div>
-  <button id="ability" class="btn" style="background:#880000; border-color:#ff4444;">스킬 발동</button>
-  <div id="board"></div>
-</div>
-
-<!-- Modals -->
-<div id="reviveModal" class="modal">
-  <div class="modalContent">
-    <h3>부활시킬 기물 선택</h3>
-    <div id="reviveChoices" style="margin-top:15px;"></div>
-  </div>
-</div>
-
-<div id="bloodBonusModal" class="modal">
-  <div class="modalContent">
-    <h3>처형 보상 기물 선택</h3>
-    <div id="bloodBonusChoices" style="margin-top:15px;"></div>
-  </div>
-</div>
-
-<div id="promotionModal" class="modal">
-  <div class="modalContent">
-    <h3>승급할 기물 선택</h3>
-    <div id="promoChoices" style="margin-top:15px;"></div>
-  </div>
-</div>
-
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-<script>
-const chars = {
-  doyoon: { name: "도윤", level: "sr", cd: 3, ability: "[질풍]", desc: "이번 턴에 추가 이동 기회를 얻습니다." },
-  hanna: { name: "한나", level: "sr", cd: 4, ability: "[무장해제]", desc: "상대가 방금 움직인 기물을 1턴간 봉인합니다." },
-  hajun: { name: "하준", level: "r", cd: 4, ability: "[수호]", desc: "자신의 기물 3개에 1턴간 무적 방어막을 생성합니다." },
-  seojun: { name: "서준", level: "ssr", cd: 5, ability: "[폭파]", desc: "지정한 칸 중심 3x3 범위를 폭파시킵니다." },
-  seongjin: { name: "성진", level: "sr", cd: 3, ability: "[순간이동]", desc: "자신의 기물 하나를 원하는 빈 칸으로 이동시킵니다." },
-  uiji: { name: "의지", level: "r", cd: 99, ability: "[부활]", desc: "죽은 기물 1개를 부활시킵니다. (게임 당 1회)" },
-  elli: { name: "엘리", level: "r", cd: 99, ability: "[로마기사병]", desc: "랜덤 폰 1개를 방어병으로 강화합니다. (게임 당 1회)" },
-  seoyoon: { name: "서윤", level: "ssr", cd: 99, ability: "[조종]", desc: "상대 기물 1개를 1턴간 직접 조종합니다. (게임 당 1회)" },
-  hayul: { name: "하율", level: "sr", cd: 0, ability: "[확률합체]", desc: "자신의 폰과 다른 기물을 합체시켜 새로운 기물을 만듭니다." },
-  minsu: { name: "민수", level: "r", cd: 99, ability: "[마지막보호]", desc: "왕에게 3턴간 무적 방어막을 부여합니다. (게임 당 1회)" },
-  hojun: { name: "호준", level: "ssr", cd: 99, ability: "[진화]", desc: "폰 1개를 진화 대상으로 지정합니다. (게임 당 1회)" },
-  hyungchul: { name: "형철", level: "ssr", cd: 99, ability: "[붕괴]", desc: "2턴 후 외곽 라인을 완전히 파괴합니다. (게임 당 1회)" },
-  gaeun: { name: "가은", level: "sr", cd: 4, ability: "[양자중첩]", desc: "기물의 위치를 관측 전까지 중첩 상태로 만듭니다." },
-  jihyeon: { name: "지현", level: "sr", cd: 0, ability: "[처형]", desc: "상대 기물 2개 처형 시 나이트나 비숍을 생성합니다." }
-};
-
-let board = [];
-let turn = 1;
-let whiteTurn = true;
-let whiteChar = "doyoon", blackChar = "seojun";
-let whiteCharge = 0, blackCharge = 0;
-let selected = null;
-
-let gameMode = "pvp";
-let isVsAI = false;
-let isOnline = false;
-let stockfishDepth = 1;
-
-let peer = null, conn = null;
-let roomCode = "";
-let onlineRole = "host";
-let myColor = true;
-let myPickedChar = null, remotePickedChar = null;
-
-let grantBonusMove = false, bonusMoveNoCapture = false;
-let grantFreeBonusMove = false, freeBonusMoveActive = false;
-let disarmedPiece = null, disarmedUntil = -1;
-let protectedPieces = [], protectedUntil = -1;
-let kingProtectUntil = { white: -1, black: -1 };
-let bombMode = false, teleportMode = false, teleportSource = null;
-let reviveMode = false, reviveType = null;
-let uijiUsed = { white: false, black: false };
-let elliUsed = { white: false, black: false };
-let seoyoonMode = false, controlMode = false, controlSource = null, seoyoonUsed = { white: false, black: false };
-let fuseMode = false, fusePawnPos = null;
-let minsuUsed = { white: false, black: false };
-let hojunUsed = { white: false, black: false };
-let evolvingPawn = { white: null, black: null };
-let hyungchulUsed = { white: false, black: false };
-let pendingCollapseTurns = null, boardCollapsed = false, collapseGameOver = false;
-let gaeunMode = false, schrodingerState = null;
-let bloodKillCount = { white: 0, black: 0 };
-let pendingBloodBonus = false, pendingBloodSpawn = null;
-let pendingPromotion = null;
-
-let deadPieces = { white: [], black: [] };
-let lastMoved = null, lastMovedWasKing = false;
-let enPassantTarget = null;
-let movedKing = { white: false, black: false };
-let movedRook = { whiteA: false, whiteH: false, blackA: false, blackH: false };
-
-let isEasterEggActive = false, blackConsecutiveMoves = 0, easterEggTurnsLeft = 10;
-let hojunGameOver = null, easterEggLoss = false;
-
-const evolutionChain = { "♙": "♘", "♟": "♞", "♘": "♗", "♞": "♝", "♗": "♖", "♝": "♜", "♖": "♕", "♜": "♛", "♕": "Ⓐ", "♛": "ⓐ" };
-
-function initial() {
-  const b = Array(8).fill(null).map(() => Array(8).fill(null));
-  const setupRow = (r, isWhite) => {
-    const p = isWhite ? ["♖","♘","♗","♕","♔","♗","♘","♖"] : ["♜","♞","♝","♛","♚","♝","♞","♜"];
-    p.forEach((type, c) => b[r][c] = createPiece(type));
-  };
-  const setupPawns = (r, isWhite) => {
-    for(let c=0; c<8; c++) b[r][c] = createPiece(isWhite ? "♙" : "♟");
-  };
-  setupRow(0, false); setupPawns(1, false);
-  setupPawns(6, true); setupRow(7, true);
-  return b;
-}
-
-function createPiece(type) {
-  return { type, id: Math.random().toString(36).substr(2, 9) };
-}
-
-function white(pObj) {
-  if(!pObj) return false;
-  return ["♖","♘","♗","♕","♔","♙","🛡️","Ⓐ"].includes(pObj.type);
-}
-
-function inside(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
-
-function playSound(type) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    if(type === "move") osc.frequency.value = 400;
-    else if(type === "capture") osc.frequency.value = 200;
-    else if(type === "ability") osc.frequency.value = 800;
-    else osc.frequency.value = 600;
-    osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.15);
-    osc.stop(ctx.currentTime + 0.15);
-  } catch(e){}
-}
-
-function getRandomFusedPiece(isWhite) {
-  const pool = isWhite ? ["♘","♗","♖","♕"] : ["♞","♝","♜","♛"];
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-function checkSchrodinger() {
-  if(schrodingerState && turn >= schrodingerState.revealTurn) {
-    const realPos = Math.random() < 0.5 ? schrodingerState.posA : schrodingerState.posB;
-    const fakePos = realPos === schrodingerState.posA ? schrodingerState.posB : schrodingerState.posA;
-    board[realPos[0]][realPos[1]] = schrodingerState.piece;
-    board[fakePos[0]][fakePos[1]] = null;
-    alert(`[양자중첩] 기물의 위치가 (${realPos[0]}, ${realPos[1]})로 관측 확정되었습니다!`);
-    schrodingerState = null;
-  }
-}
+// ==========================================
+// [PART 1/2] ABILITY CHESS - CORE LOGIC & ABILITIES
+// ==========================================
 
 function triggerBoardCollapse() {
   boardCollapsed = true;
-  for(let i=0; i<8; i++) {
-    [ [0,i], [7,i], [i,0], [i,7] ].forEach(([r,c]) => {
-      if(board[r][c]) {
-        if(white(board[r][c])) deadPieces.white.push(board[r][c].type);
-        else deadPieces.black.push(board[r][c].type);
-        board[r][c] = null;
+  let whiteKingDead = false;
+  let blackKingDead = false;
+
+  for (let c = 0; c < 8; c++) {
+    if (board[0][c]) {
+      if (board[0][c].type === "♔") whiteKingDead = true;
+      if (board[0][c].type === "♚") blackKingDead = true;
+      board[0][c] = null;
+    }
+    if (board[7][c]) {
+      if (board[7][c].type === "♔") whiteKingDead = true;
+      if (board[7][c].type === "♚") blackKingDead = true;
+      board[7][c] = null;
+    }
+  }
+
+  if (whiteKingDead && blackKingDead) {
+    collapseGameOver = "draw";
+    alert("붕괴로 양측 킹이 모두 소멸했습니다! 무승부!");
+  } else if (whiteKingDead) {
+    collapseGameOver = "black";
+    alert("붕괴로 백의 킹이 소멸했습니다! 흑 승리!");
+  } else if (blackKingDead) {
+    collapseGameOver = "white";
+    alert("붕괴로 흑의 킹이 소멸했습니다! 백 승리!");
+  }
+}
+
+function executeExplosion(r, c) {
+  for (let rr = r - 1; rr <= r + 1; rr++) {
+    for (let cc = c - 1; cc <= c + 1; cc++) {
+      if (inside(rr, cc) && board[rr][cc]) {
+        const pObj = board[rr][cc];
+        if (pObj.type === "♔") hojunGameOver = "black";
+        if (pObj.type === "♚") hojunGameOver = "white";
+        if (white(pObj)) deadPieces.white.push(pObj.type);
+        else deadPieces.black.push(pObj.type);
+        board[rr][cc] = null;
       }
+    }
+  }
+  bombMode = false;
+  if (whiteTurn) whiteCharge = 0; else blackCharge = 0;
+  playSound("capture");
+  handleTurnEnd();
+}
+
+function executeTeleport(r1, c1, r2, c2) {
+  board[r2][c2] = board[r1][c1];
+  board[r1][c1] = null;
+  teleportMode = false;
+  teleportSource = null;
+  if (whiteTurn) whiteCharge = 0; else blackCharge = 0;
+  playSound("ability");
+  handleTurnEnd();
+}
+
+function executeRevive(r, c) {
+  const isW = whiteTurn;
+  const pType = reviveType;
+  board[r][c] = createPiece(pType);
+  const idx = deadPieces[isW ? "white" : "black"].indexOf(pType);
+  if (idx > -1) deadPieces[isW ? "white" : "black"].splice(idx, 1);
+  if (isW) uijiUsed.white = true; else uijiUsed.black = true;
+  reviveMode = false;
+  reviveType = null;
+  playSound("ability");
+  handleTurnEnd();
+}
+
+function executeFusion(r2, c2) {
+  const [r1, c1] = fusePawnPos;
+  const isW = whiteTurn;
+  const newType = getRandomFusedPiece(isW);
+  board[r2][c2] = createPiece(newType);
+  board[r1][c1] = null;
+  fuseMode = false;
+  fusePawnPos = null;
+  playSound("ability");
+  handleTurnEnd();
+}
+
+function triggerAbility() {
+  const cKey = whiteTurn ? whiteChar : blackChar;
+  if (cKey === "doyoon") {
+    grantBonusMove = true;
+    bonusMoveNoCapture = true;
+    if (whiteTurn) whiteCharge = 0; else blackCharge = 0;
+    playSound("ability");
+    render();
+  } else if (cKey === "hanna") {
+    if (lastMoved) {
+      disarmedPiece = lastMoved;
+      disarmedUntil = turn + 1;
+      if (whiteTurn) whiteCharge = 0; else blackCharge = 0;
+      playSound("ability");
+      render();
+    }
+  } else if (cKey === "hajun") {
+    const list = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (board[r][c] && white(board[r][c]) === whiteTurn) list.push(board[r][c]);
+      }
+    }
+    protectedPieces = [];
+    while (protectedPieces.length < 3 && list.length > 0) {
+      const idx = Math.floor(Math.random() * list.length);
+      protectedPieces.push(list.splice(idx, 1)[0]);
+    }
+    protectedUntil = turn + 1;
+    if (whiteTurn) whiteCharge = 0; else blackCharge = 0;
+    playSound("ability");
+    render();
+  } else if (cKey === "seojun") {
+    bombMode = true;
+    render();
+  } else if (cKey === "seongjin") {
+    teleportMode = true;
+    teleportSource = null;
+    render();
+  } else if (cKey === "uiji") {
+    const deadList = deadPieces[whiteTurn ? "white" : "black"].filter(t => !["♕", "♛", "Ⓐ", "ⓐ"].includes(t));
+    if (!deadList.length) { alert("부활시킬 기물이 없습니다!"); return; }
+    const container = document.getElementById("reviveChoices");
+    container.innerHTML = "";
+    deadList.forEach(t => {
+      const btn = document.createElement("button");
+      btn.className = "modalBtn";
+      btn.textContent = t;
+      btn.onclick = () => {
+        reviveType = t;
+        reviveMode = true;
+        document.getElementById("reviveModal").style.display = "none";
+        render();
+      };
+      container.appendChild(btn);
+    });
+    document.getElementById("reviveModal").style.display = "flex";
+  } else if (cKey === "elli") {
+    const pawns = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (board[r][c] && white(board[r][c]) === whiteTurn && ["♙", "♟"].includes(board[r][c].type)) pawns.push([r, c]);
+      }
+    }
+    if (pawns.length) {
+      const [pr, pc] = pawns[Math.floor(Math.random() * pawns.length)];
+      board[pr][pc].type = whiteTurn ? "🛡️" : "🛡";
+      if (whiteTurn) elliUsed.white = true; else elliUsed.black = true;
+      playSound("ability");
+      render();
+    }
+  } else if (cKey === "seoyoon") {
+    controlMode = true;
+    controlSource = null;
+    render();
+  } else if (cKey === "hayul") {
+    fuseMode = true;
+    fusePawnPos = null;
+    render();
+  } else if (cKey === "minsu") {
+    const kKey = whiteTurn ? "white" : "black";
+    kingProtectUntil[kKey] = turn + 3;
+    if (whiteTurn) minsuUsed.white = true; else minsuUsed.black = true;
+    playSound("ability");
+    render();
+  } else if (cKey === "hojun") {
+    const pawns = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (board[r][c] && white(board[r][c]) === whiteTurn && ["♙", "♟"].includes(board[r][c].type)) pawns.push(board[r][c]);
+      }
+    }
+    if (pawns.length) {
+      const p = pawns[Math.floor(Math.random() * pawns.length)];
+      if (whiteTurn) { evolvingPawn.white = p; hojunUsed.white = true; }
+      else { evolvingPawn.black = p; hojunUsed.black = true; }
+      playSound("ability");
+      render();
+    }
+  } else if (cKey === "hyungchul") {
+    pendingCollapseTurns = 2;
+    if (whiteTurn) hyungchulUsed.white = true; else hyungchulUsed.black = true;
+    playSound("ability");
+    render();
+  } else if (cKey === "gaeun") {
+    gaeunMode = true;
+    render();
+  }
+}// ==========================================
+// [PART 2/2] ABILITY CHESS - MOVEMENT, UI & ONLINE
+// ==========================================
+
+function move(r1, c1, r2, c2, promoChar) {
+  const pObj = board[r1][c1];
+  const targetObj = board[r2][c2];
+  
+  if (targetObj) {
+    if (white(targetObj)) deadPieces.white.push(targetObj.type);
+    else deadPieces.black.push(targetObj.type);
+    
+    const curCKey = whiteTurn ? whiteChar : blackChar;
+    if (curCKey === "jihyeon" && !["♙", "♟", "🛡️", "🛡"].includes(targetObj.type)) {
+      const sideKey = whiteTurn ? "white" : "black";
+      bloodKillCount[sideKey]++;
+      if (bloodKillCount[sideKey] % 2 === 0) {
+        pendingBloodSpawn = [r1, c1];
+        pendingBloodBonus = true;
+      }
+    }
+
+    const evoP = evolvingPawn[whiteTurn ? "white" : "black"];
+    if (evoP && evoP.id === pObj.id) {
+      const nextT = evolutionChain[pObj.type];
+      if (nextT) pObj.type = nextT;
+      if ((pObj.type === "Ⓐ" || pObj.type === "ⓐ") && ["♖", "♜", "♕", "♛"].includes(targetObj.type)) {
+        hojunGameOver = whiteTurn ? "white" : "black";
+      }
+    }
+  }
+
+  if ((pObj.type === "♙" || pObj.type === "♟") && Math.abs(c2 - c1) === 1 && !targetObj && enPassantTarget && enPassantTarget[0] === r2 && enPassantTarget[1] === c2) {
+    const capP = board[r1][c2];
+    if (capP) {
+      if (white(capP)) deadPieces.white.push(capP.type);
+      else deadPieces.black.push(capP.type);
+      board[r1][c2] = null;
+    }
+  }
+
+  if ((pObj.type === "♙" || pObj.type === "♟") && Math.abs(r2 - r1) === 2) {
+    enPassantTarget = [(r1 + r2) / 2, c1];
+  } else {
+    enPassantTarget = null;
+  }
+
+  if (pObj.type === "♔" || pObj.type === "♚") {
+    if (c1 === 4 && c2 === 6) {
+      board[r1][5] = board[r1][7];
+      board[r1][7] = null;
+    } else if (c1 === 4 && c2 === 2) {
+      board[r1][3] = board[r1][0];
+      board[r1][0] = null;
+    }
+    if (whiteTurn) movedKing.white = true; else movedKing.black = true;
+  }
+
+  if (pObj.type === "♖" || pObj.type === "♜") {
+    if (r1 === 7 && c1 === 0) movedRook.whiteA = true;
+    if (r1 === 7 && c1 === 7) movedRook.whiteH = true;
+    if (r1 === 0 && c1 === 0) movedRook.blackA = true;
+    if (r1 === 0 && c1 === 7) movedRook.blackH = true;
+  }
+
+  board[r2][c2] = pObj;
+  board[r1][c1] = null;
+  lastMoved = pObj;
+
+  const promoRank = boardCollapsed ? (whiteTurn ? 1 : 6) : (whiteTurn ? 0 : 7);
+  if ((pObj.type === "♙" || pObj.type === "♟") && r2 === promoRank) {
+    if (promoChar) {
+      pObj.type = whiteTurn ? promoChar.toUpperCase() : promoChar.toLowerCase();
+    } else if (isVsAI && !whiteTurn) {
+      pObj.type = "♛";
+    } else {
+      pendingPromotion = [r2, c2];
+      showPromotionModal();
+      return;
+    }
+  }
+
+  playSound(targetObj ? "capture" : "move");
+
+  if (pendingBloodBonus) {
+    showBloodBonusModal();
+    return;
+  }
+
+  if (grantBonusMove) {
+    grantBonusMove = false;
+    selected = null;
+    render();
+    if (isOnline) broadcastState();
+    return;
+  }
+
+  bonusMoveNoCapture = false;
+  handleTurnEnd();
+}
+
+function handleTurnEnd() {
+  selected = null;
+  premoveQueue = [];
+  premoveSelected = null;
+
+  if (pendingCollapseTurns !== null) {
+    pendingCollapseTurns--;
+    if (pendingCollapseTurns <= 0) {
+      pendingCollapseTurns = null;
+      triggerBoardCollapse();
+    }
+  }
+
+  checkSchrodinger();
+
+  if (isEasterEggActive && !whiteTurn) {
+    blackConsecutiveMoves++;
+    if (blackConsecutiveMoves < 2) {
+      render();
+      if (isOnline) broadcastState();
+      return;
+    } else {
+      blackConsecutiveMoves = 0;
+      easterEggTurnsLeft--;
+      if (easterEggTurnsLeft <= 0) easterEggLoss = true;
+    }
+  }
+
+  whiteTurn = !whiteTurn;
+  if (whiteTurn) {
+    turn++;
+    if (whiteCharge < chars[whiteChar].cd) whiteCharge++;
+    if (blackCharge < chars[blackChar].cd) blackCharge++;
+  }
+
+  render();
+  if (isOnline) broadcastState();
+}
+
+function showPromotionModal() {
+  const container = document.getElementById("promoChoices");
+  container.innerHTML = "";
+  const pieces = whiteTurn ? ["♕", "♖", "♗", "♘"] : ["♛", "♜", "♝", "♞"];
+  pieces.forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "modalBtn";
+    btn.textContent = p;
+    btn.onclick = () => {
+      if (pendingPromotion) {
+        board[pendingPromotion[0]][pendingPromotion[1]].type = p;
+        pendingPromotion = null;
+        document.getElementById("promotionModal").style.display = "none";
+        if (pendingBloodBonus) showBloodBonusModal();
+        else handleTurnEnd();
+      }
+    };
+    container.appendChild(btn);
+  });
+  document.getElementById("promotionModal").style.display = "flex";
+}
+
+function showBloodBonusModal() {
+  const container = document.getElementById("bloodBonusChoices");
+  container.innerHTML = "";
+  const pieces = whiteTurn ? ["♘", "♗"] : ["♞", "♝"];
+  pieces.forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "modalBtn";
+    btn.textContent = p;
+    btn.onclick = () => {
+      if (pendingBloodSpawn) {
+        const [r, c] = pendingBloodSpawn;
+        if (!board[r][c]) board[r][c] = createPiece(p);
+      }
+      pendingBloodBonus = false;
+      pendingBloodSpawn = null;
+      document.getElementById("bloodBonusModal").style.display = "none";
+      handleTurnEnd();
+    };
+    container.appendChild(btn);
+  });
+  document.getElementById("bloodBonusModal").style.display = "flex";
+}
+
+function startGameFromTitle() {
+  document.getElementById("titleScreen").style.display = "none";
+  document.getElementById("setup").style.display = "flex";
+  buildLoadBars("setupLoadBars");
+}
+
+function setMode(mode, btn) {
+  gameMode = mode;
+  document.querySelectorAll(".modeBtn").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+}
+
+function onModeNext() {
+  if (gameMode === "online") {
+    nextStep("modeStep", "onlineChoiceStep");
+  } else if (gameMode === "ai") {
+    isVsAI = true;
+    nextStep("modeStep", "diffStep");
+  } else {
+    isVsAI = false;
+    nextStep("modeStep", "blackStep");
+    renderCharSelection("blackChoices", "black");
+  }
+}
+
+function setDifficulty(depth, btn) {
+  stockfishDepth = depth;
+  document.querySelectorAll(".diffBtn").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+}
+
+function nextStep(curr, next) {
+  document.getElementById(curr).classList.remove("active");
+  document.getElementById(next).classList.add("active");
+  if (next === "blackStep") renderCharSelection("blackChoices", "black");
+  if (next === "whiteStep") renderCharSelection("whiteChoices", "white");
+}
+
+function goToWhiteStep() {
+  nextStep("blackStep", "whiteStep");
+}
+
+function renderCharSelection(containerId, side) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = "";
+  Object.keys(chars).forEach(key => {
+    if (key === "easterEgg") return;
+    const c = chars[key];
+    card = document.createElement("button");
+    card.className = "choice" + ((side === "black" && blackChar === key) || (side === "white" && whiteChar === key) ? ` ${side}Sel` : "");
+    card.onclick = () => {
+      if (side === "black") blackChar = key; else whiteChar = key;
+      renderCharSelection(containerId, side);
+    };
+    card.innerHTML = `<div class="cName">${c.name}</div><div class="cAbility">${c.ability}</div><div class="cDesc">${c.desc}</div><div class="cLevel ${c.level}">${c.level.toUpperCase()}</div>`;
+    wrap.appendChild(card);
+  });
+}
+
+function finishSetup() {
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("loading").style.display = "flex";
+  buildLoadBars("loadBars");
+  animateLoadProgress(2000);
+  if (isVsAI) initStockfish();
+
+  setTimeout(() => {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("game").style.display = "block";
+    board = initial();
+    render();
+  }, 2000);
+}
+
+function hostRoom() {
+  isOnline = true;
+  myColor = true;
+  roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+  document.getElementById("roomCodeDisplay").textContent = roomCode;
+  nextStep("onlineChoiceStep", "onlineHostStep");
+
+  peer = new Peer("abchess-" + roomCode);
+  peer.on("open", () => {
+    document.getElementById("hostStatus").textContent = "상대방 접속 대기 중...";
+  });
+  peer.on("connection", c => {
+    conn = c;
+    setupConnection();
+  });
+}
+
+function attemptJoin() {
+  const code = document.getElementById("joinCodeInput").value;
+  if (code.length !== 4) return;
+  isOnline = true;
+  myColor = false;
+  roomCode = code;
+  document.getElementById("joinStatus").textContent = "연결 중...";
+
+  peer = new Peer();
+  peer.on("open", () => {
+    conn = peer.connect("abchess-" + roomCode);
+    setupConnection();
+  });
+}
+
+function setupConnection() {
+  conn.on("open", () => {
+    document.getElementById("hostStatus").textContent = "상대방 연결됨!";
+    document.getElementById("joinStatus").textContent = "연결 완료!";
+    setTimeout(() => {
+      const activeStep = document.querySelector(".step.active").id;
+      nextStep(activeStep, "onlineCharStep");
+      renderCharSelection("onlineChoices", myColor ? "white" : "black");
+    }, 1000);
+  });
+
+  conn.on("data", data => {
+    if (data.type === "charSelect") {
+      remotePickedChar = data.char;
+      if (myPickedChar) startOnlineGame();
+    } else if (data.type === "state") {
+      board = data.board;
+      whiteTurn = data.whiteTurn;
+      turn = data.turn;
+      whiteCharge = data.whiteCharge;
+      blackCharge = data.blackCharge;
+      render();
+    }
+  });
+}
+
+function confirmOnlineChar() {
+  myPickedChar = myColor ? whiteChar : blackChar;
+  conn.send({ type: "charSelect", char: myPickedChar });
+  document.getElementById("onlineCharStatus").textContent = "상대방의 선택을 기다리는 중...";
+  if (remotePickedChar) startOnlineGame();
+}
+
+function startOnlineGame() {
+  if (myColor) {
+    whiteChar = myPickedChar;
+    blackChar = remotePickedChar;
+  } else {
+    whiteChar = remotePickedChar;
+    blackChar = myPickedChar;
+  }
+  finishSetup();
+}
+
+function cancelOnline(currStep) {
+  if (peer) peer.destroy();
+  isOnline = false;
+  nextStep(currStep, "modeStep");
+}
+
+function copyRoomCode(btn) {
+  navigator.clipboard.writeText(roomCode);
+  btn.textContent = "복사됨!";
+  setTimeout(() => btn.textContent = "복사", 2000);
+}
+
+function broadcastState() {
+  if (conn && conn.open) {
+    conn.send({
+      type: "state",
+      board: board,
+      whiteTurn: whiteTurn,
+      turn: turn,
+      whiteCharge: whiteCharge,
+      blackCharge: blackCharge
     });
   }
-  playSound("capture");
-  alert("[붕괴 완료] a·h 파일과 1·8 랭크가 완전 파괴되었습니다.");
 }
 
-function inCheck(isWhite) { return false; }
-
-function fillBoardUI() {
-  const bEl = document.getElementById("board");
-  bEl.innerHTML = "";
-  for(let r=0; r<8; r++) {
-    for(let c=0; c<8; c++) {
-      const cell = document.createElement("div");
-      const isCollapsedCell = boardCollapsed && (r===0 || r===7 || c===0 || c===7);
-      
-      if(isCollapsedCell) {
-        cell.className = "cell collapsed";
-      } else {
-        cell.className = `cell ${(r+c)%2===0 ? "white-cell" : "black-cell"}`;
-        if(selected && selected[0]===r && selected[1]===c) cell.classList.add("selected");
-        if(board[r][c]) cell.textContent = board[r][c].type;
-        cell.onclick = () => onCellClick(r, c);
-      }
-      bEl.appendChild(cell);
-    }
-  }
-}
-
-function render() {
-  document.getElementById("turnInfo").textContent = `Turn: ${turn} (${whiteTurn ? "WHITE" : "BLACK"}) | Charge: W[${whiteCharge}/${chars[whiteChar].cd}] B[${blackCharge}/${chars[blackChar].cd}]`;
-  fillBoardUI();
-}
-
-function onCellClick(r, c) {
-  if(boardCollapsed && (r===0 || r===7 || c===0 || c===7)) return;
-
-  if(bombMode) { executeExplosion(r, c); return; }
-  if(teleportMode) {
-    if(!teleportSource) { 
-      if(board[r][c] && white(board[r][c])===whiteTurn) teleportSource = [r,c]; 
-    } else { 
-      executeTeleport(teleportSource[0], teleportSource[1], r, c); 
-    }
-    return;
-  }
-  if(reviveMode) { executeRevive(r, c); return; }
-  if(fuseMode) {
-    if(!fusePawnPos) {
-      if(board[r][c] && white(board[r][c])===whiteTurn && ["♙","♟"].includes(board[r][c].type)) fusePawnPos = [r,c];
-    } else { 
-      executeFusion(r, c); 
-    }
-    return;
-  }
-
-  if(!selected) {
-    if(board[r][c] && white(board[r][c]) === whiteTurn) selected = [r, c];
+document.getElementById("ability").onclick = () => {
+  if (bombMode || teleportMode || reviveMode || fuseMode || controlMode || gaeunMode) {
+    bombMode = false;
+    teleportMode = false;
+    reviveMode = false;
+    fuseMode = false;
+    controlMode = false;
+    gaeunMode = false;
+    render();
   } else {
-    if(selected[0] === r && selected[1] === c) { 
-      selected = null; 
-    } else { 
-      move(selected[0], selected[1], r, c); 
-    }
+    triggerAbility();
   }
-  render();
-}
-
-function triggerAbility(){
- const curCharKey = whiteTurn ? whiteChar : blackChar;
- const curCharge = whiteTurn ? whiteCharge : blackCharge;
-
- if(gaeunMode || bombMode || teleportMode || reviveMode || fuseMode || controlMode){
-   gaeunMode = bombMode = teleportMode = reviveMode = fuseMode = controlMode = false;
-   teleportSource = fusePawnPos = controlSource = null;
-   render();
-   return;
- }
-
- if(curCharKey==="doyoon"){
-   if(curCharge < chars.doyoon.cd) return;
-   grantBonusMove = true;
-   playSound("ability");
-   alert("[질풍] 추가 이동 기회가 부여되었습니다!");
- } else if(curCharKey==="hanna"){
-   if(curCharge < chars.hanna.cd) return;
-   if(lastMoved){
-     disarmedPiece = lastMoved;
-     disarmedUntil = turn + 2;
-     if(whiteTurn) whiteCharge = 0; else blackCharge = 0;
-     playSound("ability");
-     alert("[무장해제] 상대방이 방금 움직인 기물을 1턴간 봉인했습니다!");
-     handleTurnEnd();
-   } else {
-     alert("상대가 아직 움직인 기물이 없습니다.");
-   }
- } else if(curCharKey==="hajun"){
-   if(curCharge < chars.hajun.cd) return;
-   const ownPieces = [];
-   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-     if(board[r][c] && white(board[r][c])===whiteTurn) ownPieces.push(board[r][c]);
-   }
-   if(ownPieces.length > 0){
-     ownPieces.sort(()=>Math.random()-0.5);
-     protectedPieces = ownPieces.slice(0, Math.min(3, ownPieces.length));
-     protectedUntil = turn + 2;
-     if(whiteTurn) whiteCharge = 0; else blackCharge = 0;
-     playSound("ability");
-     alert(`[수호] ${protectedPieces.length}개의 기물에 수호 방어막이 생성되었습니다! (1턴 지속)`);
-     handleTurnEnd();
-   }
- } else if(curCharKey==="seojun"){
-   if(curCharge < chars.seojun.cd) return;
-   bombMode = true;
-   alert("[폭파] 폭파시킬 중앙 지점을 선택하세요.");
-   render();
- } else if(curCharKey==="seongjin"){
-   if(curCharge < chars.seongjin.cd) return;
-   teleportMode = true;
-   teleportSource = null;
-   alert("[순간이동] 이동할 기물을 먼저 선택하세요.");
-   render();
- } else if(curCharKey==="uiji"){
-   if(whiteTurn ? uijiUsed.white : uijiUsed.black) return;
-   const deadList = (whiteTurn ? deadPieces.white : deadPieces.black).filter(type => !["♕","♛","Ⓐ","ⓐ"].includes(type));
-   if(!deadList.length){ alert("부활시킬 수 있는 기물이 없습니다."); return; }
-   openReviveModal(deadList);
- } else if(curCharKey==="elli"){
-   if(whiteTurn ? elliUsed.white : elliUsed.black) return;
-   const pawns = [];
-   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-     if(board[r][c] && white(board[r][c])===whiteTurn && (board[r][c].type==="♙"||board[r][c].type==="♟")) pawns.push([r,c]);
-   }
-   if(pawns.length === 0){ alert("변경할 폰이 없습니다."); return; }
-   const choice = pawns[Math.floor(Math.random()*pawns.length)];
-   board[choice[0]][choice[1]].type = whiteTurn ? "🛡️" : "🛡";
-   if(whiteTurn) elliUsed.white = true; else elliUsed.black = true;
-   playSound("ability");
-   alert("[로마기사병] 폰 1개가 로마기사병으로 강화되었습니다!");
-   handleTurnEnd();
-   fillBoardUI();
- } else if(curCharKey==="seoyoon"){
-   if(whiteTurn ? seoyoonUsed.white : seoyoonUsed.black) return;
-   controlMode = true;
-   controlSource = null;
-   alert("[조종] 조종할 상대 기물을 선택하세요.");
-   render();
- } else if(curCharKey==="hayul"){
-   fuseMode = true;
-   fusePawnPos = null;
-   alert("[확률합체] 합체할 폰을 선택하세요.");
-   render();
- } else if(curCharKey==="minsu"){
-   if(whiteTurn ? minsuUsed.white : minsuUsed.black) return;
-   kingProtectUntil[whiteTurn?"white":"black"] = turn + 6;
-   if(whiteTurn) minsuUsed.white = true; else minsuUsed.black = true;
-   playSound("ability");
-   alert("[마지막보호] 왕에게 3턴간 무적 방어막이 부여되었습니다!");
-   handleTurnEnd();
- } else if(curCharKey==="hojun"){
-   if(whiteTurn ? hojunUsed.white : hojunUsed.black) return;
-   const pawns = [];
-   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-     if(board[r][c] && white(board[r][c])===whiteTurn && (board[r][c].type==="♙"||board[r][c].type==="♟")) pawns.push([r,c]);
-   }
-   if(pawns.length === 0){ alert("지정할 폰이 없습니다."); return; }
-   const choice = pawns[Math.floor(Math.random()*pawns.length)];
-   const pObj = board[choice[0]][choice[1]];
-   if(whiteTurn) { evolvingPawn.white = pObj; hojunUsed.white = true; }
-   else { evolvingPawn.black = pObj; hojunUsed.black = true; }
-   playSound("ability");
-   alert("[진화] 랜덤 폰 1개가 진화 대상으로 지정되었습니다!");
-   render();
- } else if(curCharKey==="hyungchul"){
-   if(whiteTurn ? hyungchulUsed.white : hyungchulUsed.black) return;
-   if(whiteTurn) hyungchulUsed.white = true; else hyungchulUsed.black = true;
-   pendingCollapseTurns = 4;
-   playSound("ability");
-   alert("[붕괴] 붕괴 발동! 2턴 후 외곽 라인이 완전히 파괴됩니다!");
-   handleTurnEnd();
- } else if(curCharKey==="gaeun"){
-   if(curCharge<chars.gaeun.cd || schrodingerState) return;
-   gaeunMode = true;
-   alert("[양자중첩] 중첩시킬 기물을 선택하세요.");
-   render();
- }
-}
-
-function openReviveModal(deadList){
- const modal = document.getElementById("reviveModal");
- const container = document.getElementById("reviveChoices");
- container.innerHTML = "";
- const unique = [...new Set(deadList)];
- unique.forEach(type => {
-   const btn = document.createElement("button");
-   btn.className = "modalBtn";
-   btn.textContent = type;
-   btn.onclick = () => {
-     reviveType = type;
-     modal.style.display = "none";
-     reviveMode = true;
-     alert("부활시킬 빈 칸을 선택하세요.");
-     render();
-   };
-   container.appendChild(btn);
- });
- modal.style.display = "flex";
-}
-
-function executeRevive(r,c){
- if(board[r][c] !== null) { alert("빈 칸에만 부활시킬 수 있습니다."); return; }
- board[r][c] = createPiece(reviveType);
- const deadArr = whiteTurn ? deadPieces.white : deadPieces.black;
- const idx = deadArr.indexOf(reviveType);
- if(idx !== -1) deadArr.splice(idx, 1);
- if(whiteTurn) uijiUsed.white = true; else uijiUsed.black = true;
- reviveMode = false;
- reviveType = null;
- playSound("ability");
- handleTurnEnd();
-}
-
-function executeExplosion(r,c){
- for(let rr=r-1;rr<=r+1;rr++){
-   for(let cc=c-1;cc<=c+1;cc++){
-     if(inside(rr,cc) && board[rr][cc]){
-       const pObj = board[rr][cc];
-       const isKing = (pObj.type === "♔" || pObj.type === "♚");
-       const kColor = pObj.type === "♔" ? "white" : "black";
-       if(!isKing || kingProtectUntil[kColor] < turn){
-         if(white(pObj)) deadPieces.white.push(pObj.type); else deadPieces.black.push(pObj.type);
-         board[rr][cc] = null;
-       }
-     }
-   }
- }
- bombMode = false;
- if(whiteTurn) whiteCharge = 0; else blackCharge = 0;
- playSound("capture");
- handleTurnEnd();
-}
-
-function executeTeleport(r1,c1,r2,c2){
- if(board[r2][c2] !== null) { alert("빈 칸으로만 이동할 수 있습니다."); teleportSource = null; return; }
- board[r2][c2] = board[r1][c1];
- board[r1][c1] = null;
- teleportMode = false;
- teleportSource = null;
- if(whiteTurn) whiteCharge = 0; else blackCharge = 0;
- playSound("ability");
- handleTurnEnd();
-}
-
-function executeFusion(r,c){
- const targetObj = board[r][c];
- if(!targetObj || white(targetObj) !== whiteTurn) { alert("자신의 다른 기물을 선택하세요."); fusePawnPos = null; return; }
- const isWhite = whiteTurn;
- const newType = getRandomFusedPiece(isWhite);
-
- if(white(targetObj)) deadPieces.white.push(targetObj.type); else deadPieces.black.push(targetObj.type);
- board[fusePawnPos[0]][fusePawnPos[1]] = null;
- board[r][c] = createPiece(newType);
-
- fuseMode = false;
- fusePawnPos = null;
- playSound("ability");
- alert(`[확률합체] 합체 완료! 새 기물 [ ${newType} ] 이(가) 탄생했습니다!`);
- handleTurnEnd();
-}
-
-function move(r1,c1,r2,c2, promoCharOverride=null){
- const pObj=board[r1][c1], qObj=board[r2][c2];
- const isCapture = !!qObj;
- const isKing = pObj.type==="♔"||pObj.type==="♚";
- const isPawn = pObj.type==="♙"||pObj.type==="♟";
- const isWhite = white(pObj);
-
- if(isCapture){
-   if(white(qObj)) deadPieces.white.push(qObj.type); else deadPieces.black.push(qObj.type);
- }
-
- const isCastling = isKing && Math.abs(c2-c1)===2;
- if(isCastling){
-   if(c2===6){
-     board[r1][5] = board[r1][7];
-     board[r1][7] = null;
-   } else if(c2===2){
-     board[r1][3] = board[r1][0];
-     board[r1][0] = null;
-   }
-   playSound("move");
- }
-
- const isEnPassant = isPawn && Math.abs(c2-c1)===1 && !qObj && enPassantTarget && enPassantTarget[0]===r2 && enPassantTarget[1]===c2;
- if(isEnPassant){
-   const capPawn = board[r1][c2];
-   if(capPawn){
-     if(white(capPawn)) deadPieces.white.push(capPawn.type); else deadPieces.black.push(capPawn.type);
-   }
-   board[r1][c2] = null;
-   playSound("capture");
- }
-
- if(isPawn && Math.abs(r2-r1)===2){
-   enPassantTarget = [(r1+r2)/2, c1];
- } else {
-   enPassantTarget = null;
- }
-
- if(pObj.type==="♔") movedKing.white = true;
- if(pObj.type==="♚") movedKing.black = true;
- if(pObj.type==="♖"){ if(r1===7&&c1===0) movedRook.whiteA=true; if(r1===7&&c1===7) movedRook.whiteH=true; }
- if(pObj.type==="♜"){ if(r1===0&&c1===0) movedRook.blackA=true; if(r1===0&&c1===7) movedRook.blackH=true; }
-
- board[r2][c2] = pObj;
- board[r1][c1] = null;
- lastMoved = pObj;
- lastMovedWasKing = isKing;
- selected = null;
-
- const evo = isWhite ? evolvingPawn.white : evolvingPawn.black;
- if(evo && evo.id === pObj.id && isCapture){
-   const nextType = evolutionChain[pObj.type];
-   if(nextType){
-     pObj.type = nextType;
-     alert(`[진화] 기물이 [ ${nextType} ] (으)로 진화했습니다!`);
-   }
-   if((pObj.type==="Ⓐ"||pObj.type==="ⓐ") && qObj && ["♖","♜","♕","♛"].includes(qObj.type)){
-     hojunGameOver = isWhite ? "white" : "black";
-     playSound("ability");
-     alert(`[진화 승리] 진화체의 특수 조건 달성으로 ${isWhite ? "WHITE" : "BLACK"} 승리!`);
-     render();
-     return;
-   }
- }
-
- const bloodOwnerChar = isWhite ? whiteChar : blackChar;
- if(bloodOwnerChar === "jihyeon" && isCapture && !["♙","♟"].includes(qObj.type)){
-   const key = isWhite ? "white" : "black";
-   bloodKillCount[key]++;
-   if(bloodKillCount[key] % 2 === 0){
-     pendingBloodSpawn = [r1, c1];
-     pendingBloodBonus = true;
-     openBloodBonusModal();
-     return;
-   }
- }
-
- const promoRow = boardCollapsed ? (isWhite ? 1 : 6) : (isWhite ? 0 : 7);
- const isPromo = isPawn && (isWhite ? r2 <= promoRow : r2 >= promoRow);
- if(isPromo){
-   if(promoCharOverride){
-     const map = { q: isWhite?"♕":"♛", r: isWhite?"♖":"♜", b: isWhite?"♗":"♝", n: isWhite?"♘":"♞" };
-     pObj.type = map[promoCharOverride.toLowerCase()] || (isWhite?"♕":"♛");
-     finishMove(isCapture, isCastling);
-   } else {
-     pendingPromotion = [r2, c2];
-     openPromotionModal(isWhite);
-   }
-   return;
- }
-
- finishMove(isCapture, isCastling);
-}
-
-function openBloodBonusModal(){
- const modal = document.getElementById("bloodBonusModal");
- const container = document.getElementById("bloodBonusChoices");
- container.innerHTML = "";
- const choices = whiteTurn ? ["♘", "♗"] : ["♞", "♝"];
- choices.forEach(type => {
-   const btn = document.createElement("button");
-   btn.className = "modalBtn";
-   btn.textContent = type;
-   btn.onclick = () => {
-     board[pendingBloodSpawn[0]][pendingBloodSpawn[1]] = createPiece(type);
-     modal.style.display = "none";
-     pendingBloodBonus = false;
-     pendingBloodSpawn = null;
-     finishMove(true, false);
-   };
-   container.appendChild(btn);
- });
- modal.style.display = "flex";
-}
-
-function openPromotionModal(isWhite){
- const modal = document.getElementById("promotionModal");
- const container = document.getElementById("promoChoices");
- container.innerHTML = "";
- const choices = isWhite ? ["♕", "♖", "♗", "♘"] : ["♛", "♜", "♝", "♞"];
- choices.forEach(type => {
-   const btn = document.createElement("button");
-   btn.className = "modalBtn";
-   btn.textContent = type;
-   btn.onclick = () => {
-     const [pr, pc] = pendingPromotion;
-     board[pr][pc].type = type;
-     modal.style.display = "none";
-     pendingPromotion = null;
-     
-     grantFreeBonusMove = true;
-     finishMove(false, false);
-   };
-   container.appendChild(btn);
- });
- modal.style.display = "flex";
-}
-
-function finishMove(isCapture, isCastling){
- if(isCapture) playSound("capture");
- else if(!isCastling) playSound("move");
-
- if(grantBonusMove){
-   grantBonusMove = false;
-   bonusMoveNoCapture = true;
-   render();
-   if(isOnline) broadcastState();
-   return;
- }
-
- if(grantFreeBonusMove){
-   grantFreeBonusMove = false;
-   freeBonusMoveActive = true;
-   render();
-   if(isOnline) broadcastState();
-   return;
- }
-
- bonusMoveNoCapture = false;
- freeBonusMoveActive = false;
- handleTurnEnd();
-}
-
-function handleTurnEnd(){
- if(whiteTurn) whiteCharge = Math.min(chars[whiteChar].cd, whiteCharge + 1);
- else blackCharge = Math.min(chars[blackChar].cd, blackCharge + 1);
-
- if(isEasterEggActive){
-   if(!whiteTurn){
-     blackConsecutiveMoves++;
-     if(blackConsecutiveMoves < 2){
-       render();
-       if(isOnline) broadcastState();
-       return;
-     } else {
-       blackConsecutiveMoves = 0;
-       easterEggTurnsLeft--;
-       if(easterEggTurnsLeft <= 0){
-         easterEggLoss = true;
-         playSound("gameEnd");
-         render();
-         if(isOnline) broadcastState();
-         return;
-       }
-     }
-   }
- }
-
- if(pendingCollapseTurns !== null){
-   pendingCollapseTurns--;
-   if(pendingCollapseTurns === 0){
-     pendingCollapseTurns = null;
-     triggerBoardCollapse();
-   }
- }
-
- whiteTurn = !whiteTurn;
- turn++;
-
- checkSchrodinger();
-
- if(inCheck(whiteTurn)) playSound("check");
-
- render();
- if(isOnline) broadcastState();
-}
-
-document.getElementById("ability").onclick = triggerAbility;
-
-function setMode(m, btn){
- gameMode = m;
- isVsAI = (m === "ai");
- isOnline = (m === "online");
- document.querySelectorAll(".modeBtn").forEach(b => b.classList.remove("selected"));
- btn.classList.add("selected");
-}
-
-function onModeNext(){
- if(gameMode === "pvp"){
-   nextStep('modeStep', 'blackStep');
- } else if(gameMode === "ai"){
-   nextStep('modeStep', 'diffStep');
- } else if(gameMode === "online"){
-   nextStep('modeStep', 'onlineChoiceStep');
- }
-}
-
-function setDifficulty(d, btn){
- stockfishDepth = d;
- document.querySelectorAll(".diffBtn").forEach(b => b.classList.remove("selected"));
- btn.classList.add("selected");
-}
-
-function nextStep(curr, next){
- document.getElementById(curr).classList.remove("active");
- document.getElementById(next).classList.add("active");
-}
-
-function renderChoices(containerId, isWhite){
- const container = document.getElementById(containerId);
- container.innerHTML = "";
- Object.keys(chars).forEach(key => {
-   if(key === "easterEgg") return;
-   const c = chars[key];
-   const div = document.createElement("div");
-   div.className = "choice";
-   div.innerHTML = `
-     <div class="cName">${c.name}</div>
-     <div class="cAbility">${c.ability}</div>
-     <div class="cDesc">${c.desc}</div>
-     <div class="cLevel ${c.level}">${c.level.toUpperCase()}</div>
-   `;
-   div.onclick = () => {
-     container.querySelectorAll(".choice").forEach(el => el.classList.remove("blackSel", "whiteSel"));
-     div.classList.add(isWhite ? "whiteSel" : "blackSel");
-     if(isWhite) whiteChar = key; else blackChar = key;
-   };
-   container.appendChild(div);
- });
-}
-
-function goToWhiteStep(){
- renderChoices("whiteChoices", true);
- nextStep('blackStep', 'whiteStep');
-}
-
-function startGameFromTitle(){
- document.getElementById("titleScreen").style.display = "none";
- document.getElementById("setup").style.display = "block";
- renderChoices("blackChoices", false);
-}
-
-function finishSetup(){
- document.getElementById("setup").style.display = "none";
- document.getElementById("loading").style.display = "flex";
-
- setTimeout(() => {
-   document.getElementById("loading").style.display = "none";
-   document.getElementById("game").style.display = "block";
-   board = initial();
-   render();
- }, 1000);
-}
-
-function hostRoom(){
- onlineRole = "host";
- myColor = true;
- peer = new Peer();
- peer.on('open', id => {
-   roomCode = id.substring(0, 4).toUpperCase();
-   document.getElementById("roomCodeDisplay").textContent = roomCode;
-   nextStep('onlineChoiceStep', 'onlineHostStep');
- });
- peer.on('connection', c => {
-   conn = c;
-   setupConnection();
-   document.getElementById("hostStatus").textContent = "상대방 연결됨! 캐릭터 선택으로 이동...";
-   setTimeout(() => { openOnlineCharSelect(); }, 1000);
- });
-}
-
-function copyRoomCode(btn){
- navigator.clipboard.writeText(roomCode);
- btn.textContent = "복사됨!";
- setTimeout(() => btn.textContent = "코드 복사", 1500);
-}
-
-function attemptJoin(){
- const input = document.getElementById("joinCodeInput").value.trim().toUpperCase();
- if(input.length < 4) return;
- onlineRole = "guest";
- myColor = false;
- document.getElementById("joinStatus").textContent = "연결 시도 중...";
- peer = new Peer();
- peer.on('open', () => {
-   conn = peer.connect(input);
-   setupConnection();
- });
-}
-
-function cancelOnline(stepId){
- if(peer) peer.destroy();
- conn = null;
- nextStep(stepId, 'modeStep');
-}
-
-function setupConnection(){
- conn.on('open', () => {
-   if(onlineRole === "guest"){
-     document.getElementById("joinStatus").textContent = "연결 성공! 캐릭터 선택으로 이동...";
-     setTimeout(() => { openOnlineCharSelect(); }, 1000);
-   }
- });
- conn.on('data', data => { handleOnlineData(data); });
-}
-
-function openOnlineCharSelect(){
- document.getElementById("onlineColorLabel").textContent = myColor ? "[WHITE 캐릭터 선택]" : "[BLACK 캐릭터 선택]";
- renderChoices("onlineChoices", myColor);
- nextStep(onlineRole === "host" ? 'onlineHostStep' : 'onlineJoinStep', 'onlineCharStep');
-}
-
-function confirmOnlineChar(){
- myPickedChar = myColor ? whiteChar : blackChar;
- conn.send({ type: 'PICK_CHAR', char: myPickedChar });
- document.getElementById("onlineCharStatus").textContent = "상대방의 선택을 기다리는 중...";
- if(remotePickedChar) startOnlineGame();
-}
-
-function startOnlineGame(){
- if(myColor){ whiteChar = myPickedChar; blackChar = remotePickedChar; }
- else { whiteChar = remotePickedChar; blackChar = myPickedChar; }
- finishSetup();
-}
-
-function broadcastState(){
- if(!isOnline || !conn) return;
- conn.send({
-   type: 'SYNC_STATE', board, whiteTurn, turn, whiteCharge, blackCharge,
-   disarmedPiece, disarmedUntil, protectedPieces, protectedUntil,
-   kingProtectUntil, schrodingerState, deadPieces, hojunGameOver,
-   easterEggLoss, collapseGameOver, boardCollapsed
- });
-}
-
-function handleOnlineData(data){
- if(data.type === 'PICK_CHAR'){
-   remotePickedChar = data.char;
-   if(myPickedChar) startOnlineGame();
- } else if(data.type === 'SYNC_STATE'){
-   board = data.board; whiteTurn = data.whiteTurn; turn = data.turn;
-   whiteCharge = data.whiteCharge; blackCharge = data.blackCharge;
-   disarmedPiece = data.disarmedPiece; disarmedUntil = data.disarmedUntil;
-   protectedPieces = data.protectedPieces; protectedUntil = data.protectedUntil;
-   kingProtectUntil = data.kingProtectUntil; schrodingerState = data.schrodingerState;
-   deadPieces = data.deadPieces; hojunGameOver = data.hojunGameOver;
-   easterEggLoss = data.easterEggLoss; collapseGameOver = data.collapseGameOver;
-   boardCollapsed = data.boardCollapsed;
-   render();
- }
-}
+};
 </script>
 </body>
 </html>
